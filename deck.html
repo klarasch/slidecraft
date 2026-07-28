@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slidecraft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="runtime.css">
+<link rel="stylesheet" href="themes/midnight.css" id="theme">
+</head>
+
+<body data-deck-label="Slidecraft">
+<div class="stage">
+<div class="deck">
+
+  <!-- 01 · title ------------------------------------------------------- -->
+  <section class="slide slide--title" data-bare data-title="Cover">
+    <p class="eyebrow">Internal tooling · 2026</p>
+    <h1 class="display">Decks that stay <span class="accent">editable</span> after Claude writes them.</h1>
+    <div class="meta">
+      <span>Slidecraft</span>
+      <span>·</span>
+      <span>A proof of concept</span>
+      <span>·</span>
+      <span>Press <b>→</b> to advance</span>
+    </div>
+  </section>
+
+  <!-- 02 · agenda ------------------------------------------------------ -->
+  <section class="slide slide--agenda" data-title="Agenda">
+    <div class="stack stack--sm">
+      <p class="eyebrow">Contents</p>
+      <h2 class="h1">What this thing does</h2>
+    </div>
+    <ol>
+      <li><span class="t">The problem with generated decks</span><span class="n">01</span></li>
+      <li><span class="t">One runtime, many decks</span><span class="n">02</span></li>
+      <li><span class="t">Layouts as master slides</span><span class="n">03</span></li>
+      <li><span class="t">Themes are just tokens</span><span class="n">04</span></li>
+      <li><span class="t">Editing in the browser</span><span class="n">05</span></li>
+      <li><span class="t">Saving without base64</span><span class="n">06</span></li>
+      <li><span class="t">Export to PDF</span><span class="n">07</span></li>
+      <li><span class="t">What ships in v1</span><span class="n">08</span></li>
+    </ol>
+  </section>
+
+  <!-- 03 · section ----------------------------------------------------- -->
+  <section class="slide slide--section" data-bare data-title="Section: The problem">
+    <p class="index">01</p>
+    <p class="eyebrow">Section</p>
+    <h2 class="display">The problem</h2>
+  </section>
+
+  <!-- 04 · statement --------------------------------------------------- -->
+  <section class="slide slide--statement" data-title="Statement: dead on arrival">
+    <p class="eyebrow">The core failure</p>
+    <h2 class="display">A generated deck is beautiful and <span class="accent">dead on arrival</span>.</h2>
+    <p class="lead">You can't fix a typo without going back to the model. So nobody uses it twice.</p>
+  </section>
+
+  <!-- 05 · split ------------------------------------------------------- -->
+  <section class="slide slide--split" data-title="One runtime, many decks">
+    <figure class="media split__media"><img src="images/mesh-warm.svg" alt=""></figure>
+    <div class="split__body">
+      <p class="eyebrow">02 · Architecture</p>
+      <h2 class="h1">One runtime.<br>Many decks.</h2>
+      <p class="body">The navigation, overview, edit mode and export live in a fixed <code>runtime.js</code> that ships with the skill. Claude never rewrites it.</p>
+      <p class="body">Every generated deck is therefore just semantic markup plus a theme file — small to produce, cheap to revise, identical in behaviour.</p>
+      <span class="chip">runtime.js · 380 lines · written once</span>
+    </div>
+  </section>
+
+  <!-- 06 · cards ------------------------------------------------------- -->
+  <section class="slide slide--cards" data-title="Three moving parts">
+    <div class="stack stack--sm">
+      <p class="eyebrow">03 · Layouts</p>
+      <h2 class="h1">Claude picks a layout. It doesn't invent one.</h2>
+    </div>
+    <div class="cards">
+      <article class="card">
+        <p class="num">01</p>
+        <h3 class="h3">Master slides</h3>
+        <p class="body">Ten layout classes — title, section, statement, split, stats, cards, quote, full-bleed, code, end.</p>
+      </article>
+      <article class="card">
+        <p class="num">02</p>
+        <h3 class="h3">Design tokens</h3>
+        <p class="body">A theme is nine CSS variables. Brand it once, reuse it across every deck you generate.</p>
+      </article>
+      <article class="card">
+        <p class="num">03</p>
+        <h3 class="h3">Semantic markup</h3>
+        <p class="body">The only thing the model writes. Small, diffable, and safe to hand-edit later.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- 07 · stats ------------------------------------------------------- -->
+  <section class="slide slide--stats" data-title="Why it's cheap">
+    <div class="stack stack--sm">
+      <p class="eyebrow">04 · Economics</p>
+      <h2 class="h1">Cheap because the hard part is a static file.</h2>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <p class="stat__num">~9</p>
+        <p class="body">CSS variables define a complete brand theme.</p>
+      </div>
+      <div class="stat">
+        <p class="stat__num">10</p>
+        <p class="body">Layout classes cover the shape of almost any talk.</p>
+      </div>
+      <div class="stat">
+        <p class="stat__num">0</p>
+        <p class="body">Lines of JavaScript regenerated per deck.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 · section ----------------------------------------------------- -->
+  <section class="slide slide--section" data-bare data-title="Section: Editing">
+    <p class="index">05</p>
+    <p class="eyebrow">Section</p>
+    <h2 class="display">Editing</h2>
+  </section>
+
+  <!-- 09 · bullets ----------------------------------------------------- -->
+  <section class="slide slide--bullets" data-title="Edit mode">
+    <div class="stack stack--sm">
+      <p class="eyebrow">05 · Try it now — press E</p>
+      <h2 class="h1">What edit mode gives you</h2>
+    </div>
+    <ul>
+      <li>Every heading, paragraph and list item becomes directly editable in place.</li>
+      <li>Click any image slot to swap the picture. Drag a file onto it works too.</li>
+      <li>Paste an image with ⌘V and it drops onto the slide — drag to move, scroll to resize.</li>
+      <li>Leave a note on a slide and the next Claude pass reads it as a change request.</li>
+    </ul>
+  </section>
+
+  <!-- 10 · split flipped ----------------------------------------------- -->
+  <section class="slide slide--split is-flipped" data-title="Saving without base64">
+    <figure class="media split__media"><img src="images/topo.svg" alt=""></figure>
+    <div class="split__body">
+      <p class="eyebrow">06 · Persistence</p>
+      <h2 class="h1">Saving without base64.</h2>
+      <p class="body">A browser file picker can't hand you a real path, so the usual answer is inlining every image as base64 — a 2&nbsp;MB photo becomes 2.7&nbsp;MB of text.</p>
+      <p class="body">Instead the runtime asks for the deck's folder once via the File System Access API, writes new images into <code>images/</code>, and keeps the markup pointing at relative paths.</p>
+      <span class="chip">fallback: standalone download, images inlined</span>
+    </div>
+  </section>
+
+  <!-- 11 · code -------------------------------------------------------- -->
+  <section class="slide slide--code" data-title="What Claude writes">
+    <div class="stack stack--sm">
+      <p class="eyebrow">Anatomy</p>
+      <h2 class="h1">All the model has to emit</h2>
+    </div>
+<pre>&lt;section class="slide slide--split"&gt;
+  &lt;figure class="media split__media"&gt;
+    &lt;img src="images/roadmap.png" alt=""&gt;
+  &lt;/figure&gt;
+  &lt;div class="split__body"&gt;
+    &lt;p class="eyebrow"&gt;Q3 · Roadmap&lt;/p&gt;
+    &lt;h2 class="h1"&gt;Ship the thing.&lt;/h2&gt;
+    &lt;p class="body"&gt;Then ship it again, smaller.&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/section&gt;</pre>
+  </section>
+
+  <!-- 12 · full bleed -------------------------------------------------- -->
+  <section class="slide slide--full" data-title="Full bleed">
+    <figure class="media bleed"><img src="images/mesh-cool.svg" alt=""></figure>
+    <div class="overlay">
+      <p class="eyebrow">07 · Export</p>
+      <h2 class="h1">Print to PDF, and the pixels survive.</h2>
+      <p class="lead">Chrome → Print → margins <b>None</b>, background graphics <b>on</b>. One slide per landscape page, fonts and gradients intact.</p>
+    </div>
+  </section>
+
+  <!-- 13 · quote ------------------------------------------------------- -->
+  <section class="slide slide--quote" data-title="Quote">
+    <blockquote class="serif">The deck you can't edit is a screenshot with extra steps.</blockquote>
+    <figcaption>
+      <img class="avatar" src="images/avatar.svg" alt="">
+      <span class="caption">Anyone who has ever received a PDF the night before a talk</span>
+    </figcaption>
+  </section>
+
+  <!-- 14 · bullets: v1 scope ------------------------------------------- -->
+  <section class="slide slide--bullets" data-title="v1 scope">
+    <div class="stack stack--sm">
+      <p class="eyebrow">08 · Scope</p>
+      <h2 class="h1">What ships in v1</h2>
+    </div>
+    <ul>
+      <li>Layout library, three themes, and a documented markup contract for the model.</li>
+      <li>In-browser editing with save-back to the deck folder.</li>
+      <li>PDF via print stylesheet — no html2canvas, no font mangling.</li>
+      <li>Folder ingestion: point the skill at a directory and it lays out the images it finds.</li>
+    </ul>
+  </section>
+
+  <!-- 15 · end --------------------------------------------------------- -->
+  <section class="slide slide--end" data-bare data-title="End">
+    <p class="eyebrow">Fin</p>
+    <h2 class="display">Press <span class="accent">E</span> and change something.</h2>
+    <p class="lead" style="max-width:34ch">Then press <b>O</b> for the overview, <b>T</b> to reskin the whole deck, <b>P</b> to make a PDF.</p>
+  </section>
+
+</div>
+</div>
+
+<script src="runtime.js"></script>
+</body>
+</html>

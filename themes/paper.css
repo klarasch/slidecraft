@@ -1,0 +1,15 @@
+/* theme: paper — light, editorial, ink accent */
+:root {
+  --app-bg: #e9e6df;
+  --bg: #fbfaf7;
+  --fg: #131318;
+  --muted: rgba(19, 19, 24, 0.58);
+  --faint: rgba(19, 19, 24, 0.14);
+  --surface: #f2efe8;
+
+  --accent: #d93a1f;
+  --accent-2: #3a2fd6;
+  --accent-fg: #fbfaf7;
+
+  --wash-opacity: 0.5;
+}

@@ -1,0 +1,15 @@
+/* theme: midnight — dark, high-contrast, warm accent */
+:root {
+  --app-bg: #08080a;
+  --bg: #0b0b0f;
+  --fg: #f6f5f3;
+  --muted: rgba(246, 245, 243, 0.56);
+  --faint: rgba(246, 245, 243, 0.13);
+  --surface: #14141b;
+
+  --accent: #ff5b2e;
+  --accent-2: #7c5cff;
+  --accent-fg: #0b0b0f;
+
+  --wash-opacity: 0.9;
+}

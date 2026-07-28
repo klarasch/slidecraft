@@ -1,0 +1,15 @@
+/* theme: mint — deep green, soft, product-launch energy */
+:root {
+  --app-bg: #05100d;
+  --bg: #071612;
+  --fg: #eefaf4;
+  --muted: rgba(238, 250, 244, 0.58);
+  --faint: rgba(238, 250, 244, 0.14);
+  --surface: #0d211b;
+
+  --accent: #3ddc97;
+  --accent-2: #22d3ee;
+  --accent-fg: #04120e;
+
+  --wash-opacity: 0.75;
+}

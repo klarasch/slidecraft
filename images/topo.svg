@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice">
+  <rect width="800" height="1000" fill="#0d0d12"/>
+  <g fill="none" stroke="#ff5b2e" stroke-width="1.2" opacity="0.55">
+    <g id="rings">
+      <ellipse cx="400" cy="500" rx="60"  ry="42"/>
+      <ellipse cx="400" cy="500" rx="120" ry="86"/>
+      <ellipse cx="400" cy="500" rx="182" ry="132"/>
+      <ellipse cx="400" cy="500" rx="246" ry="180"/>
+      <ellipse cx="400" cy="500" rx="312" ry="230"/>
+      <ellipse cx="400" cy="500" rx="380" ry="282"/>
+      <ellipse cx="400" cy="500" rx="450" ry="336"/>
+      <ellipse cx="400" cy="500" rx="522" ry="392"/>
+    </g>
+  </g>
+  <g fill="none" stroke="#7c5cff" stroke-width="1" opacity="0.35" transform="translate(60,-120) rotate(-12 400 500)">
+    <use href="#rings"/>
+  </g>
+</svg>
