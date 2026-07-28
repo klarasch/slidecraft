@@ -115,7 +115,7 @@
   const EDITABLE = [
     "h1", "h2", "h3", "h4", "p", "li", "blockquote", "figcaption", "pre", "td", "th",
     ".eyebrow", ".display", ".h1", ".h2", ".h3", ".lead", ".body", ".caption",
-    ".stat__num", ".chip", ".index", ".num", ".t", ".n"
+    ".stat__num", ".chip", ".index", ".num", ".t", ".n", ".meta > span"
   ].join(",");
 
   function enableEditing() {
@@ -233,8 +233,7 @@
     root.querySelectorAll("img[data-src]").forEach(img => {
       const rel = img.dataset.src;
       img.setAttribute("src", inline && inlined.has(rel) ? inlined.get(rel) : rel);
-      if (!inline) img.removeAttribute("data-src");
-      else img.removeAttribute("data-src");
+      img.removeAttribute("data-src");
     });
     root.removeAttribute("style");
     root.querySelector("body").className = "";

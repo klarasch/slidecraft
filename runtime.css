@@ -193,6 +193,13 @@ body:not(.is-editing):not(.is-overview) .slide.is-active > *:not(.slide__chrome)
   font-weight: 400;
   letter-spacing: -.015em;
 }
+code {
+  font: 500 .88em/1 var(--font-mono);
+  padding: .2em .45em;
+  border-radius: 5px;
+  background: color-mix(in oklab, var(--fg) 9%, transparent);
+  color: var(--fg);
+}
 .accent { color: var(--accent); }
 .dim { color: var(--muted); }
 
@@ -253,7 +260,7 @@ body.is-editing .media:hover { outline: 2px solid var(--accent); }
 
 /* --- title --- */
 .slide--title { justify-content: flex-end; gap: 30px; }
-.slide--title .display { font-size: 104px; max-width: 15ch; }
+.slide--title .display { font-size: 94px; max-width: 16ch; }
 .slide--title .meta {
   display: flex;
   gap: 28px;
