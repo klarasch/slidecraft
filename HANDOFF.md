@@ -89,7 +89,7 @@ Notes that will save you a round trip:
 - Set `--wash-opacity: 0` for conservative/corporate brands. The radial gradient wash reads as
   "startup deck" and some brand teams will hate it.
 
-Register the new name in the `THEMES` array in `runtime.js` (~line 300) so `T` cycles it.
+Register the new name in the `THEMES` array in `runtime.js` (line 356) so `T` cycles it.
 
 ### 4b. Brand fonts
 
