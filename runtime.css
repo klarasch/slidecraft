@@ -718,10 +718,22 @@ body.is-editing .pin.is-sel { outline: 2px solid #fff; outline-offset: 2px; }
 }
 .slide--placeholder .slide__wash { display: none; }
 .slide__placeholder-note {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
   max-width: 32ch;
   font: 500 22px/1.5 var(--font-display);
   color: var(--muted);
 }
+.slide__placeholder-note .icon { width: 22px; height: 22px; opacity: .6; }
+.slide__placeholder-note.has-note .icon { display: none; }
+body.is-editing .slide__placeholder-note {
+  cursor: pointer; padding: 18px 22px; border-radius: 14px;
+  transition: background-color .15s, outline-color .15s;
+  outline: 2px solid transparent; outline-offset: 6px;
+}
+body.is-editing .slide__placeholder-note:hover {
+  background: rgba(124, 92, 255, .08); outline-color: rgba(124, 92, 255, .4);
+}
+body.is-editing .slide__placeholder-note:not(.has-note) { color: #cdbfff; }
 
 /* --- deck logo (data-logo), replaces the text label in the footer --- */
 .slide__logo { display: block; height: 18px; width: auto; object-fit: contain; }

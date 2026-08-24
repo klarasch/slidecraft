@@ -124,9 +124,13 @@
       ph = document.createElement("div");
       ph.className = "slide__placeholder-note";
       ph.dataset.gen = "";
+      ph.innerHTML = `<svg class="icon"><use href="#i-spark"/></svg><span></span>`;
+      ph.onclick = () => { if (editing && s === slides[index]) openPopover("note", ph); };
       s.append(ph);
     }
-    ph.textContent = s.dataset.note || "Placeholder — describe this slide, then hand it to Claude.";
+    const has = !!s.dataset.note;
+    ph.classList.toggle("has-note", has);
+    $("span", ph).textContent = has ? s.dataset.note : "Click to describe this slide";
   }
 
   function ensureNoteChip(s) {
