@@ -1067,6 +1067,13 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
   display: grid; grid-template-columns: 1fr 360px; grid-template-rows: 1fr auto; gap: 24px;
   padding: 28px; background: var(--app-bg); color: var(--fg);
 }
+.presenter__alert {
+  position: fixed; top: 28px; left: 50%; transform: translateX(-50%);
+  z-index: 6; max-width: 640px; padding: 12px 18px; border-radius: 10px;
+  background: rgba(200, 82, 58, .18); border: 1px solid rgba(200, 82, 58, .5);
+  color: #f6f5f3; font: 400 14px/1.5 var(--font-body);
+}
+.presenter__alert code { font: 500 12px/1 var(--font-mono); background: rgba(255, 255, 255, .1); padding: 2px 5px; border-radius: 4px; }
 .presenter__main { display: flex; align-items: center; min-width: 0; }
 .presenter__frame { width: 100%; border-radius: 10px; }
 .presenter__side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
