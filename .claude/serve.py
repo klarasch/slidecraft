@@ -1,5 +1,6 @@
 """Dev server for slidecraft: static files with Cache-Control: no-store, so reloads never serve stale runtime files."""
 import os, sys
+from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 class NoCache(SimpleHTTPRequestHandler):
@@ -10,6 +11,13 @@ class NoCache(SimpleHTTPRequestHandler):
     def log_message(self, *a):  # quiet
         pass
 
-# arg wins, then the harness-assigned PORT (autoPort), then the default
-port = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PORT", 8765))
-ThreadingHTTPServer(("127.0.0.1", port), NoCache).serve_forever()
+# args: a number is the port, anything else the directory to serve.
+# An explicit port wins over the harness-assigned PORT (autoPort) and the default.
+port, root = int(os.environ.get("PORT", 8765)), None
+for a in sys.argv[1:]:
+    if a.isdigit():
+        port = int(a)
+    else:
+        root = a
+handler = partial(NoCache, directory=root) if root else NoCache
+ThreadingHTTPServer(("127.0.0.1", port), handler).serve_forever()

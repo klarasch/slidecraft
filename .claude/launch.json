@@ -7,6 +7,13 @@
       "runtimeArgs": [".claude/serve.py"],
       "port": 8765,
       "autoPort": true
+    },
+    {
+      "name": "testbed",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [".claude/serve.py", "/Users/klarascholleova/Code/slidecraft-testbed"],
+      "port": 8766,
+      "autoPort": true
     }
   ]
 }
