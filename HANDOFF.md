@@ -142,7 +142,7 @@ runtime and document it in `LAYOUTS.md`; never let a deck carry its own `<style>
 - Headless check: `Chrome --headless=new --dump-dom http://127.0.0.1:8765/deck.html | grep data-overflow`.
 - Model choice: runtime/layout/theme code → Sonnet, high effort; `SKILL.md` and layout-system
   taste calls → Opus; visual fix rounds → Sonnet, medium.
-- Repo has no remote yet — push it somewhere before building on it further.
+- Remote: https://github.com/klarasch/slidecraft (private), branch `master`.
 
 ## 7. Prompt to start the next session
 
