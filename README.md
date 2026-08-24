@@ -63,7 +63,7 @@ downloading a self-contained `deck-edited.html` (see below).
 ## One file to share
 
 The deck **folder** is the source of truth — that's what Claude revises cheaply. The share
-artifact is `deck-standalone.html`: one self-contained file with the runtime, theme, and every
+artifact is one self-contained file named after the deck's title (e.g. `Q3 Platform Review.html`) with the runtime, theme, and every
 image baked in. You get it two ways:
 
 - **At generation** — the skill runs `standalone.py` and writes it next to `deck.html`, so in
@@ -119,7 +119,7 @@ themes/*.css       nine design tokens each         (one per brand)
 themes/*.md        that brand's writing voice
 themes/default     one line: which theme to use without asking
 images/            deck assets
-standalone.py      builds deck-standalone.html — the single shareable file
+standalone.py      builds the single shareable file (named from <title>); --explode reverses it
 build.sh           assembles the installable skill into dist/ (repo = dev source)
 ```
 

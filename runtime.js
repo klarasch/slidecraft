@@ -733,9 +733,8 @@
       const blob = new Blob([await serialize({ inline: true })], { type: "text/html" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      let base = location.pathname.split("/").pop() || "deck.html";
-      if (!/\.html?$/i.test(base)) base = "deck.html";
-      a.download = base.replace(/\.html?$/i, "") + "-standalone.html";
+      // name the file after the deck, like standalone.py does
+      a.download = ((document.title || "").replace(/[\\/:*?"<>|]/g, "").trim() || "deck") + ".html";
       a.click();
       toast("Single file downloaded — everything baked in, opens anywhere.");
     } catch (err) {

@@ -176,8 +176,9 @@ number to say out loud. Never a transcript. Never a restatement of the slide.
 python3 <this skill's folder>/standalone.py <deck folder>/deck.html
 ```
 
-It writes `deck-standalone.html` beside the deck — one self-contained file (runtime, theme,
-images baked in; markup on top, compacted runtime at the end) that the user can send as is.
+It writes one self-contained file beside the deck, **named after the deck's `<title>`**
+(e.g. `Q3 Platform Review.html`) — runtime, theme, images baked in; markup on top, compacted
+runtime at the end — that the user can send as is.
 **This is the deliverable, on every surface** — the only file you hand the user. The folder
 deck (`deck.html` + assets) is your workspace: it keeps revisions cheap (no base64 in context),
 diffs small, and picks up runtime fixes — but the user never needs to open it, and opened via
@@ -188,7 +189,7 @@ genuinely unavailable, say so and point at the deck's **Single file** toolbar bu
 **Hand off in four lines, no more.**
 
 ```
-Deck: ./q3-platform-review/deck-standalone.html — 18 slides, one file. Open it (Chrome), send it as is.
+Deck: ./q3-platform-review/Q3 Platform Review.html — 18 slides, one file. Open it (Chrome), send it as is.
 Source: ./q3-platform-review/deck.html — I edit this for revisions; you don't need to open it.
 Keys: → ← navigate · E edit · O overview · S presenter · P PDF · F fullscreen.
 ```
@@ -222,11 +223,12 @@ cannot be reskinned away from the brand mid-talk.
 
 The user's `deck.html` is the source of truth. **Never regenerate it.** Edit in place.
 
-One exception: if `deck-standalone.html` beside it is **newer** than `deck.html`, the user
-edited the deck in the browser and saved — the standalone holds their latest slides and
-`data-note` requests. Port its slide markup (everything inside `.deck`, plus `<body>`
-attributes) back into `deck.html` first, leaving the standalone's inlined `<style>`/`<script>`
-tail behind, then revise `deck.html` as usual.
+One exception: if a standalone export beside it (any `.html` carrying `data-standalone`) is
+**newer** than `deck.html`, the user edited the deck in the browser and saved — the standalone
+holds their latest slides and `data-note` requests. Run
+`standalone.py --explode <that file>` (§3): images come back out as files (byte-identical ones
+under their original names), and the slide markup lands in a small `deck-work.html`. Port that
+markup into `deck.html`, then revise as usual.
 
 1. Read `<meta name="slidecraft-brief">` to recover the tier and tone. Stay consistent with them.
 2. `grep -o 'data-note="[^"]*"' deck.html` — every hit is a change request from the user, written
@@ -240,18 +242,25 @@ tail behind, then revise `deck.html` as usual.
 6. Never touch `src` attributes on `<img>`, and never remove `.sticker` elements — those are the
    user's pasted images.
 7. Re-check the density budget on any slide you rewrote.
-8. If a `deck-standalone.html` sits beside the deck, rebuild it (`standalone.py`, §3) — a
-   stale share file is worse than none.
+8. Rebuild the share file (`standalone.py`, §3) — a stale share file is worse than none.
+   Delete any old export left under a previous title.
 
 If the user asks for something that needs a new asset (a new theme, a new layout), say so rather
 than writing per-deck CSS.
 
 **Standalone files.** A deck marked `<html data-standalone>` is a single-file export: runtime,
-theme, and images are inlined. Edit only the slide markup inside it — never the inlined
-`<style>`/`<script>` blocks. When the folder deck exists, revise that instead and re-export
-(open the deck in Chrome → **Single file**). To produce a standalone copy yourself, inline the
-deck's `<link>` stylesheets and `<script src>` as tags and every relative `img src` (and
-`data-logo`) as data: URIs, strip `data-themes`, and add `data-standalone` to `<html>`.
+theme, and images are inlined. **Never read or edit one directly** — the inlined images and
+runtime would flood your context. When the folder deck exists, revise that and re-export (§3).
+When only the standalone exists (chat, a file the user sent back), run
+
+```
+python3 <this skill's folder>/standalone.py --explode <file>.html
+```
+
+It writes a small `deck-work.html` (slide markup only, grep-able), `bundle.css`/`bundle.js`,
+and the images as real files. Revise `deck-work.html` like any deck, then rebuild:
+`standalone.py deck-work.html` — the output is again one self-contained file named after the
+deck's title.
 
 ---
 

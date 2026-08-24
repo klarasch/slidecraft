@@ -88,10 +88,15 @@ html:fullscreen .deck { box-shadow: none; }
 
 /* Before the runtime boots — and wherever scripts never run (Quick Look,
    preview panes) — show the title slide, fitted to the viewport, so a
-   shared file previews as its cover rather than a blank page. */
-body:not(.is-ready) .deck .slide:first-child { opacity: 1; visibility: visible; }
+   shared file previews as its cover rather than a blank page. Quick Look
+   imposes its own canvas aspect, so paint the whole page in the slide's
+   background and drop the card corners/shadow: any crop reads as a
+   full-bleed cover instead of a small card on a tall document. */
+body:not(.is-ready) { background: var(--bg); }
+body:not(.is-ready) .deck .slide:first-child { opacity: 1; visibility: visible; border-radius: 0; }
 body:not(.is-ready) .deck {
   transform: translate(-50%, -50%) scale(min(100vw / 1280px, 100vh / 720px));
+  border-radius: 0; box-shadow: none;
 }
 
 /* subtle entrance stagger — "rise" transition only */
