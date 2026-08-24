@@ -1215,13 +1215,13 @@
   // @page size and prints on the dialog's paper, so it always gets the
   // popover with steps for a custom 16:9 paper size. When the deck carries
   // speaker notes, also offer slides-only vs with-notes.
-  const isSafariPrint = /apple/i.test(navigator.vendor || "");
+  const isSafari = /apple/i.test(navigator.vendor || "");
   function exportPDF(anchor) {
     const hasNotes = !!$(".notes", deck);
-    if (!hasNotes && !isSafariPrint) return print();
+    if (!hasNotes && !isSafari) return print();
     closePicker();
     const layer = $("#pop-layer");
-    const sub = isSafariPrint
+    const sub = isSafari
       ? `Safari prints on the dialog's paper, not the deck's 16:9 page. For true 16:9 pages: Paper Size → <b>Manage Custom Sizes…</b> → 13.33 × 7.5 in (338.7 × 190.5 mm), margins 0 — and tick <b>Print backgrounds</b>. Chrome exports 16:9 automatically.`
       : `16:9 pages, one per slide — the page size comes from the deck, whatever paper the dialog names. Set margins <b>None</b> and background graphics <b>on</b>.`;
     const actions = hasNotes
@@ -1414,12 +1414,14 @@
   function openPresenter() {
     const sep = location.search ? "&" : "?";
     const url = location.pathname + location.search + sep + "presenter" + location.hash;
-    window.open(url, "slidecraft-presenter", "width=1100,height=700");
+    const win = window.open(url, "slidecraft-presenter", "width=1100,height=700");
+    if (!win) toast("Presenter view needs a popup — allow popups for this page, then try again.");
   }
 
   function mountPresenterUI() {
     document.body.insertAdjacentHTML("beforeend", ICONS + `
       <div class="presenter" data-runtime>
+        <div class="presenter__alert" id="pv-alert" hidden></div>
         <div class="presenter__main">
           <div class="thumb__frame presenter__frame"><div class="thumb__scaler" id="pv-current"></div></div>
         </div>
@@ -1483,15 +1485,35 @@
       $("#pv-elapsed").textContent = elapsedStart ? fmtElapsed(Date.now() - elapsedStart) : "00:00";
     }, 1000);
     const chan = new BroadcastChannel("slidecraft:" + location.pathname);
+    // heartbeat: hello every second → any deck window answers with its state.
+    // While no answer lands, keys go nowhere (deck closed, popup became the
+    // only window, Safari file:// isolation) — say so instead of failing
+    // silently; a deck window appearing later reconnects automatically.
+    const alertEl = $("#pv-alert");
+    const showDisconnected = () => {
+      alertEl.hidden = false;
+      alertEl.innerHTML = isSafari && location.protocol === "file:"
+        ? `Can't reach the deck window — Safari isolates <code>file://</code> pages from each other, so presenter view can't drive the deck. Open the deck in Chrome, or serve its folder over http.`
+        : `Can't reach the deck window. Presenter view is a remote control — keep the deck open in its own window or tab.`;
+    };
+    let lastSeen = 0;
     chan.onmessage = e => {
       const d = e.data;
       if (typeof d?.index !== "number") return;
+      lastSeen = Date.now();
+      const changed = d.index !== index || (d.step || 0) !== step;
       index = d.index; step = d.step || 0;
-      if (!synced) synced = true;
-      else if (elapsedStart === null) elapsedStart = Date.now();
+      if (!synced) { synced = true; alertEl.hidden = true; renderPresenter(); return; }
+      if (!changed) return;                             // heartbeat echo, nothing new
+      if (elapsedStart === null) elapsedStart = Date.now();
       renderPresenter();
     };
     chan.postMessage({ hello: true });
+    setInterval(() => {
+      chan.postMessage({ hello: true });
+      if (synced && Date.now() - lastSeen > 2500) { synced = false; showDisconnected(); }
+    }, 1000);
+    setTimeout(() => { if (!synced) showDisconnected(); }, 1500);
     addEventListener("keydown", e => {
       const typing = e.target.isContentEditable || /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
       if (typing) return;

@@ -12,6 +12,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": [".claude/serve.py", "8932"],
       "port": 8932
+    },
+    {
+      "name": "deck-3",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [".claude/serve.py", "8967"],
+      "port": 8967
     }
   ]
 }
