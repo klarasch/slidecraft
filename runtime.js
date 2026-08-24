@@ -736,7 +736,10 @@
       // name the file after the deck, like standalone.py does
       a.download = ((document.title || "").replace(/[\\/:*?"<>|]/g, "").trim() || "deck") + ".html";
       a.click();
-      toast("Single file downloaded — everything baked in, opens anywhere.");
+      const pendingCount = $$("[data-note]").length;
+      toast(pendingCount
+        ? `Downloaded a copy with your changes — ${pendingCount} change request${pendingCount === 1 ? "" : "s"} still open. Hand this .html back to Claude to have them made.`
+        : "Downloaded a copy with your changes — everything baked in, opens anywhere.");
     } catch (err) {
       console.warn(err);
       toast("Can't read the deck's files from a file:// page. Serve the folder, or ask Claude for a standalone copy.");
@@ -1054,8 +1057,8 @@
   }
 
   function btn({ id, icon, label, key, cls = "", tip }) {
-    const hint = label || tip;                       // icon-only buttons carry their name in `tip`
-    return `<button id="${id}" class="tb-btn ${cls}"${key ? ` data-key="${key}"` : ""}${hint ? ` data-label="${escapeHtml(hint)}"` : ""}${tip ? ` aria-label="${escapeHtml(tip)}"` : ""}>` +
+    const a11y = tip || label;                        // icon-only buttons carry their name in `tip`
+    return `<button id="${id}" class="tb-btn ${cls}"${key ? ` data-key="${key}"` : ""}${tip ? ` data-tip="${escapeHtml(tip)}"` : ""}${a11y ? ` aria-label="${escapeHtml(a11y)}"` : ""}>` +
       (icon ? `<svg class="icon"><use href="#i-${icon}"/></svg>` : "") +
       (label ? `<span>${escapeHtml(label)}</span>` : "") + `</button>`;
   }
@@ -1070,30 +1073,30 @@
       <span class="tb-count js-count">${index + 1} / ${slides.length}</span>
       ${btn({ id: "btn-next", icon: "next", cls: "icon-only", key: "→", tip: "Next slide" })}
       <span class="tb-sep"></span>
-      ${btn({ id: "btn-ov", icon: "grid", label: "Overview", key: "O" })}
-      ${showTheme ? btn({ id: "btn-theme", icon: "theme", label: "Theme", key: "T" }) : ""}
-      ${btn({ id: "btn-presenter", icon: "present", label: "Presenter", key: "S" })}
-      ${btn({ id: "btn-print", icon: "pdf", label: "Export PDF", key: "P" })}
-      ${btn({ id: "btn-single", icon: "save", label: "Single file", key: "D", tip: "Download one self-contained .html" })}
+      ${btn({ id: "btn-ov", icon: "grid", label: "Overview", key: "O", tip: "See every slide as a grid" })}
+      ${showTheme ? btn({ id: "btn-theme", icon: "theme", label: "Theme", key: "T", tip: "Switch light/dark theme" }) : ""}
+      ${btn({ id: "btn-presenter", icon: "present", label: "Presenter", key: "S", tip: "Open presenter view with speaker notes" })}
+      ${btn({ id: "btn-print", icon: "pdf", label: "Export PDF", key: "P", tip: "Print or save the deck as a PDF" })}
+      ${btn({ id: "btn-single", icon: "save", label: "Download copy", key: "D", tip: "Download the deck with your changes as one self-contained .html" })}
       <span class="tb-sep"></span>
-      ${btn({ id: "btn-edit", icon: "edit", label: "Edit", key: "E" })}
+      ${btn({ id: "btn-edit", icon: "edit", label: "Edit", key: "E", tip: "Switch to edit mode" })}
       ${btn({ id: "btn-help", icon: "help", cls: "icon-only", key: "?", tip: "Keyboard shortcuts" })}
     ` : `
       ${btn({ id: "btn-prev", icon: "prev", cls: "icon-only", key: "←", tip: "Previous slide" })}
       <span class="tb-count js-count">${index + 1} / ${slides.length}</span>
       ${btn({ id: "btn-next", icon: "next", cls: "icon-only", key: "→", tip: "Next slide" })}
       <span class="tb-sep"></span>
-      ${btn({ id: "btn-add", icon: "plus", label: "Add slide" })}
+      ${btn({ id: "btn-add", icon: "plus", label: "Add slide", tip: "Insert a new slide after this one" })}
       ${btn({ id: "btn-dup", icon: "dup", cls: "icon-only", key: "⌘D", tip: "Duplicate slide" })}
       ${btn({ id: "btn-del", icon: "trash", cls: "icon-only", key: "⌫", tip: "Delete slide" })}
       <span class="tb-sep"></span>
-      ${btn({ id: "btn-note", icon: "spark", label: "Request change" })}
-      ${btn({ id: "btn-notes", icon: "notes", label: "Speaker notes" })}
+      ${btn({ id: "btn-note", icon: "spark", label: "Request change", tip: "Flag this slide for Claude to revise later" })}
+      ${btn({ id: "btn-notes", icon: "notes", label: "Speaker notes", tip: "Add notes for presenter view and printed PDFs" })}
       <span class="tb-sep"></span>
       ${btn({ id: "btn-undo", icon: "undo", cls: "icon-only", key: "⌘Z", tip: "Undo" })}
-      <button id="btn-save" class="tb-btn" data-label="Save"><svg class="icon"><use href="#i-save"/></svg><span class="js-save-label">Save</span></button>
+      <button id="btn-save" class="tb-btn" data-tip="Save changes to this file" aria-label="Save"><svg class="icon"><use href="#i-save"/></svg><span class="js-save-label">Save</span></button>
       <span class="tb-sep"></span>
-      ${btn({ id: "btn-done", icon: "check", label: "Done", cls: "primary" })}
+      ${btn({ id: "btn-done", icon: "check", label: "Done", cls: "primary", tip: "Exit edit mode" })}
     `;
 
     $("#btn-prev").onclick = prev;
@@ -1132,7 +1135,7 @@
   }
   function showTip(el) {
     const tip = $("#tip");
-    const label = el.dataset.label || el.querySelector("span")?.textContent || el.title;
+    const label = el.dataset.tip || el.querySelector("span")?.textContent || el.title;
     const key = el.dataset.key;
     if (!label) return;
     tip.innerHTML = `${escapeHtml(label)}${key ? ` <kbd>${escapeHtml(key)}</kbd>` : ""}`;

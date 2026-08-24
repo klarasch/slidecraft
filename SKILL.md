@@ -184,7 +184,7 @@ deck (`deck.html` + assets) is your workspace: it keeps revisions cheap (no base
 diffs small, and picks up runtime fixes — but the user never needs to open it, and opened via
 `file://` it can't even export itself. Don't present it as an alternative. **Never inline
 assets yourself** — the script exists so base64 never enters your context. If `python3` is
-genuinely unavailable, say so and point at the deck's **Single file** toolbar button instead.
+genuinely unavailable, say so and point at the deck's **Download copy** toolbar button instead.
 
 **Hand off in four lines, no more.**
 

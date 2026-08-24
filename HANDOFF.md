@@ -25,7 +25,7 @@ mode arrow keys jump whole slides (reveal steps only play in view mode). Sticker
 drag with anchored opposite corners; wheel-resize was removed as awkward.
 Single-file export: the standalone file (named after the deck's `<title>`) is the sole user-facing
 deliverable on every surface; `standalone.py --explode` reverses it for base64-free revisions. Two producers, kept in sync by hand: `standalone.py` (run by the skill at generation,
-SKILL.md §3) and the runtime's "Single file" toolbar button / `inlineAssets()` (post-edit).
+SKILL.md §3) and the runtime's "Download copy" toolbar button / `inlineAssets()` (post-edit).
 Both emit the same shape: slide markup at the top (hand-editable), compacted stylesheet +
 runtime appended at the end of `<body>`, a `#standalone-guard` style in `<head>` against
 unstyled flash, images/logo as data: URIs, `data-themes` stripped, `<html data-standalone>`.

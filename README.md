@@ -68,7 +68,7 @@ image baked in. You get it two ways:
 
 - **At generation** — the skill runs `standalone.py` and writes it next to `deck.html`, so in
   Cowork the shareable file exists the moment the deck does.
-- **After editing** — press **Single file** in the toolbar to download a fresh one.
+- **After editing** — press **Download copy** in the toolbar to download a fresh one.
 
 The file is built content-first: your slide markup sits at the top, hand-editable in any text
 editor; the minified stylesheet and runtime are appended at the end of `<body>` (a one-line
