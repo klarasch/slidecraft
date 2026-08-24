@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="themes/midnight.css" id="theme">
 </head>
 
-<body data-deck-label="Slidecraft">
+<body data-deck-label="Slidecraft" data-themes="midnight paper mint">
 <div class="stage">
 <div class="deck">
 
@@ -26,6 +26,9 @@
       <span>·</span>
       <span>Press <b>→</b> to advance</span>
     </div>
+    <aside class="notes">
+      <p>Open with the pain point, not the feature list: a generated deck nobody can touch is worse than no deck at all.</p>
+    </aside>
   </section>
 
   <!-- 02 · agenda ------------------------------------------------------ -->
@@ -47,7 +50,7 @@
   </section>
 
   <!-- 03 · section ----------------------------------------------------- -->
-  <section class="slide slide--section" data-bare data-title="Section: The problem">
+  <section class="slide slide--section" data-bare data-title="Section: The problem" data-transition="wipe">
     <p class="index">01</p>
     <p class="eyebrow">Section</p>
     <h2 class="display">The problem</h2>
@@ -58,6 +61,36 @@
     <p class="eyebrow">The core failure</p>
     <h2 class="display">A generated deck is beautiful and <span class="accent">dead on arrival</span>.</h2>
     <p class="lead">You can't fix a typo without going back to the model. So nobody uses it twice.</p>
+    <aside class="notes">
+      <p>Pause here — ask the room how many of them have a deck they were afraid to touch after it was generated.</p>
+      <p>That's the failure mode we're fixing.</p>
+    </aside>
+  </section>
+
+  <!-- 04b · compare ---------------------------------------------------- -->
+  <section class="slide slide--compare" data-title="Compare: before and after">
+    <div class="stack stack--sm">
+      <p class="eyebrow">01 · The fix</p>
+      <h2 class="h1">Same deck, one difference.</h2>
+    </div>
+    <div class="compare">
+      <article class="col">
+        <h3 class="h3">Generated once</h3>
+        <ul>
+          <li>A typo means a round-trip to the model.</li>
+          <li>Every regeneration reshuffles what was fine.</li>
+          <li>The file is too big to diff or trust.</li>
+        </ul>
+      </article>
+      <article class="col col--accent">
+        <h3 class="h3">Slidecraft</h3>
+        <ul>
+          <li>Press E and fix the typo in place.</li>
+          <li>Revisions touch only the slides you flagged.</li>
+          <li>Markup small enough to read in a diff.</li>
+        </ul>
+      </article>
+    </div>
   </section>
 
   <!-- 05 · split ------------------------------------------------------- -->
@@ -78,11 +111,11 @@
       <p class="eyebrow">03 · Layouts</p>
       <h2 class="h1">Claude picks a layout. It doesn't invent one.</h2>
     </div>
-    <div class="cards">
+    <div class="cards" data-reveal>
       <article class="card">
         <p class="num">01</p>
         <h3 class="h3">Master slides</h3>
-        <p class="body">Ten layout classes — title, section, statement, split, stats, cards, quote, full-bleed, code, end.</p>
+        <p class="body">Twenty layout classes — from title, split and stats to bento, timeline, callout and full-bleed.</p>
       </article>
       <article class="card">
         <p class="num">02</p>
@@ -97,6 +130,36 @@
     </div>
   </section>
 
+  <!-- 06b · bento ------------------------------------------------------ -->
+  <section class="slide slide--bento" data-title="Bento">
+    <div class="stack stack--sm">
+      <p class="eyebrow">03 · Layouts</p>
+      <h2 class="h1">One slide, five tiles.</h2>
+    </div>
+    <div class="bento" data-reveal>
+      <article class="cell cell--wide">
+        <h3 class="h3">The lead idea</h3>
+        <p class="body">The wide cell carries the point. The others orbit it — a stat, a note, an accent.</p>
+      </article>
+      <article class="cell">
+        <p class="stat__num" data-animate="count">20</p>
+        <p class="body">layouts in the library.</p>
+      </article>
+      <article class="cell">
+        <h3 class="h3">Tokens</h3>
+        <p class="body">Cells inherit the theme.</p>
+      </article>
+      <article class="cell">
+        <h3 class="h3">Editable</h3>
+        <p class="body">Every cell is plain markup.</p>
+      </article>
+      <article class="cell cell--accent">
+        <h3 class="h3">Accent cell</h3>
+        <p class="body">One tile gets to shout.</p>
+      </article>
+    </div>
+  </section>
+
   <!-- 07 · stats ------------------------------------------------------- -->
   <section class="slide slide--stats" data-title="Why it's cheap">
     <div class="stack stack--sm">
@@ -105,22 +168,32 @@
     </div>
     <div class="stats">
       <div class="stat">
-        <p class="stat__num">~9</p>
+        <p class="stat__num" data-animate="count">~9</p>
         <p class="body">CSS variables define a complete brand theme.</p>
       </div>
       <div class="stat">
-        <p class="stat__num">10</p>
+        <p class="stat__num" data-animate="count">20</p>
         <p class="body">Layout classes cover the shape of almost any talk.</p>
       </div>
       <div class="stat">
-        <p class="stat__num">0</p>
+        <p class="stat__num" data-animate="count">0</p>
         <p class="body">Lines of JavaScript regenerated per deck.</p>
       </div>
     </div>
   </section>
 
+  <!-- 07b · big number ------------------------------------------------- -->
+  <section class="slide slide--number" data-title="Big number" data-transition="zoom">
+    <p class="eyebrow">04 · Economics</p>
+    <p class="stat__num" data-animate="count">~3,000</p>
+    <p class="lead">tokens to hand a finished deck back to Claude for a revision pass.</p>
+    <aside class="notes">
+      <p>This is the number that makes the revise loop viable — say it, then let it sit.</p>
+    </aside>
+  </section>
+
   <!-- 08 · section ----------------------------------------------------- -->
-  <section class="slide slide--section" data-bare data-title="Section: Editing">
+  <section class="slide slide--section" data-bare data-title="Section: Editing" data-transition="wipe">
     <p class="index">05</p>
     <p class="eyebrow">Section</p>
     <h2 class="display">Editing</h2>
@@ -132,12 +205,15 @@
       <p class="eyebrow">05 · Try it now — press E</p>
       <h2 class="h1">What edit mode gives you</h2>
     </div>
-    <ul>
+    <ul data-reveal>
       <li>Every heading, paragraph and list item becomes directly editable in place.</li>
       <li>Click any image slot to swap the picture. Drag a file onto it works too.</li>
       <li>Paste an image with ⌘V and it drops onto the slide — drag to move, scroll to resize.</li>
       <li>Leave a note on a slide and the next Claude pass reads it as a change request.</li>
     </ul>
+    <aside class="notes">
+      <p>Click through these one at a time instead of dumping the whole list — it's a much better demo of the reveal feature itself.</p>
+    </aside>
   </section>
 
   <!-- 10 · split flipped ----------------------------------------------- -->
@@ -172,11 +248,65 @@
 
   <!-- 12 · full bleed -------------------------------------------------- -->
   <section class="slide slide--full" data-title="Full bleed">
-    <figure class="media bleed"><img src="images/mesh-cool.svg" alt=""></figure>
+    <figure class="media bleed" data-kenburns><img src="images/mesh-cool.svg" alt=""></figure>
     <div class="overlay">
       <p class="eyebrow">07 · Export</p>
       <h2 class="h1">Print to PDF, and the pixels survive.</h2>
       <p class="lead">Chrome → Print → margins <b>None</b>, background graphics <b>on</b>. One slide per landscape page, fonts and gradients intact.</p>
+    </div>
+  </section>
+
+  <!-- 12b · gallery ---------------------------------------------------- -->
+  <section class="slide slide--gallery" data-title="Gallery">
+    <div class="stack stack--sm">
+      <p class="eyebrow">07 · Images</p>
+      <h2 class="h1">Three pictures, one slide.</h2>
+    </div>
+    <div class="gallery">
+      <figure class="media"><img src="images/mesh-warm.svg" alt=""></figure>
+      <figure class="media"><img src="images/topo.svg" alt=""></figure>
+      <figure class="media"><img src="images/mesh-cool.svg" alt=""></figure>
+    </div>
+  </section>
+
+  <!-- 12c · full-screen image ------------------------------------------ -->
+  <section class="slide slide--image" data-bare data-title="Full-screen image">
+    <figure class="media bleed" data-kenburns><img src="images/mesh-warm.svg" alt=""></figure>
+    <p class="credit">slide--image · no chrome, no text, just the picture</p>
+  </section>
+
+  <!-- 12d · callout ---------------------------------------------------- -->
+  <section class="slide slide--callout" data-title="Callout">
+    <figure class="media callout__media">
+      <img src="images/topo.svg" alt="">
+      <i class="pin" style="left:24%;top:26%"></i>
+      <i class="pin" style="left:58%;top:52%"></i>
+      <i class="pin" style="left:38%;top:74%"></i>
+    </figure>
+    <div class="callout__body">
+      <p class="eyebrow">07 · For design reviews</p>
+      <h2 class="h2">Point at the pixels.</h2>
+      <ol class="callout__notes" data-reveal>
+        <li>Numbered pins sit on the image itself.</li>
+        <li>In edit mode, drag a pin anywhere — numbers follow the order.</li>
+        <li>Double-click the image to add a pin and its note.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 12e · full callout ----------------------------------------------- -->
+  <section class="slide slide--callout-full" data-bare data-title="Full callout">
+    <figure class="media callout__media">
+      <img src="images/mesh-cool.svg" alt="">
+      <i class="pin" style="left:22%;top:30%"></i>
+      <i class="pin" style="left:44%;top:64%"></i>
+    </figure>
+    <div class="callout__box">
+      <h3 class="h3">Or go full screen.</h3>
+      <ol class="callout__notes">
+        <li>The image takes the whole slide.</li>
+        <li>Notes float in this box — dock it left or right.</li>
+      </ol>
     </div>
   </section>
 
@@ -203,11 +333,41 @@
     </ul>
   </section>
 
+  <!-- 14b · timeline --------------------------------------------------- -->
+  <section class="slide slide--timeline" data-title="Timeline">
+    <div class="stack stack--sm">
+      <p class="eyebrow">08 · Roadmap</p>
+      <h2 class="h1">Where this goes next</h2>
+    </div>
+    <div class="timeline" data-reveal>
+      <div class="step">
+        <p class="caption">Now</p>
+        <h3 class="h3">v1 ships</h3>
+        <p class="body">Runtime, layouts, three themes.</p>
+      </div>
+      <div class="step">
+        <p class="caption">Next</p>
+        <h3 class="h3">Brand training</h3>
+        <p class="body">Point it at a site, get a theme.</p>
+      </div>
+      <div class="step">
+        <p class="caption">Then</p>
+        <h3 class="h3">Folder ingestion</h3>
+        <p class="body">A directory of images becomes slides.</p>
+      </div>
+      <div class="step">
+        <p class="caption">Later</p>
+        <h3 class="h3">Design reviews</h3>
+        <p class="body">Annotate screens, not just talks.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- 15 · end --------------------------------------------------------- -->
   <section class="slide slide--end" data-bare data-title="End">
     <p class="eyebrow">Fin</p>
     <h2 class="display">Press <span class="accent">E</span> and change something.</h2>
-    <p class="lead" style="max-width:34ch">Then press <b>O</b> for the overview, <b>T</b> to reskin the whole deck, <b>P</b> to make a PDF.</p>
+    <p class="lead">Then press <b>O</b> for the overview, <b>T</b> to reskin the whole deck, <b>P</b> to make a PDF.</p>
   </section>
 
 </div>
