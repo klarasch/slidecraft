@@ -536,6 +536,51 @@
     return toDataURL(await res.blob());
   }
 
+  /* ------------------------------------------------- print-safe SVG grain */
+  // feTurbulence grain baked into an SVG asset rasterizes at print resolution
+  // into megabytes of incompressible noise per page — a 20-slide deck can top
+  // 50MB and stall PDF viewers. At boot, strip turbulence layers out of SVG
+  // <img>s (the original path stays in data-src, so saves and single-file
+  // exports keep the untouched asset) and tag the figure data-grain; the
+  // stylesheet paints an equivalent screen-only grain overlay that @media
+  // print drops.
+  async function degrainImages() {
+    const cache = new Map();               // src -> sanitized blob URL | null
+    for (const img of $$("img", deck)) {
+      const src = img.dataset.src || img.getAttribute("src") || "";
+      if (!/\.svg(\?|#|$)/i.test(src) && !/^data:image\/svg/i.test(src)) continue;
+      let url = cache.get(src);
+      if (url === undefined) {
+        url = null;
+        try {
+          const text = await (await fetch(img.currentSrc || img.src)).text();
+          if (/<feTurbulence/i.test(text)) {
+            const doc = new DOMParser().parseFromString(text, "image/svg+xml");
+            if (!doc.querySelector("parsererror")) {
+              const noisy = [...doc.querySelectorAll("filter")]
+                .filter(f => f.querySelector("feTurbulence") && f.id)
+                .map(f => `(#${f.id})`);
+              doc.querySelectorAll("[filter]").forEach(el => {
+                const ref = el.getAttribute("filter");
+                if (noisy.some(id => ref.includes(id))) el.remove();
+              });
+              // never swap in an image the strip emptied out
+              const hasArt = [...doc.documentElement.children]
+                .some(n => !/^(defs|style|title|desc|metadata|filter)$/i.test(n.localName));
+              if (hasArt) url = URL.createObjectURL(new Blob(
+                [new XMLSerializer().serializeToString(doc)], { type: "image/svg+xml" }));
+            }
+          }
+        } catch { /* file:// page — fetch is blocked, leave the asset alone */ }
+        cache.set(src, url);
+      }
+      if (!url) continue;
+      if (!img.dataset.src) img.dataset.src = src;
+      img.src = url;
+      img.closest(".media")?.setAttribute("data-grain", "");
+    }
+  }
+
   // conservative compaction: strip comments, indentation and blank lines.
   // Line-interior whitespace is never touched, so CSS content strings and
   // JS template-literal HTML survive byte-meaningfully.
@@ -581,6 +626,7 @@
       const rel = img.dataset.src || img.getAttribute("src");
       img.removeAttribute("data-src");
       if (isRelSrc(rel)) img.setAttribute("src", await relToDataURL(rel));
+      else if (/^data:/i.test(rel)) img.setAttribute("src", rel);   // degrained standalone: restore the original data: URI
     }
     const body = root.querySelector("body");
     if (isRelSrc(body.dataset.logo)) body.dataset.logo = await relToDataURL(body.dataset.logo);
@@ -620,6 +666,7 @@
       n.removeAttribute("contenteditable"); n.removeAttribute("spellcheck");
     });
     root.querySelectorAll(".sticker, .pin").forEach(n => n.classList.remove("is-sel"));
+    root.querySelectorAll("[data-grain]").forEach(n => n.removeAttribute("data-grain"));   // re-derived at boot
     if (inline) {
       await inlineAssets(root);
     } else {
@@ -1164,24 +1211,33 @@
       $("#note-save").onclick = () => { setNote(ta.value); closePopover(); };
     }
   }
-  // PDF export: pages are 16:9 by @page rule; when the deck carries speaker
-  // notes, offer slides-only vs with-notes before opening the print dialog
+  // PDF export: pages are 16:9 by @page rule in Chromium; Safari ignores
+  // @page size and prints on the dialog's paper, so it always gets the
+  // popover with steps for a custom 16:9 paper size. When the deck carries
+  // speaker notes, also offer slides-only vs with-notes.
+  const isSafariPrint = /apple/i.test(navigator.vendor || "");
   function exportPDF(anchor) {
-    if (!$(".notes", deck)) return print();
+    const hasNotes = !!$(".notes", deck);
+    if (!hasNotes && !isSafariPrint) return print();
     closePicker();
     const layer = $("#pop-layer");
+    const sub = isSafariPrint
+      ? `Safari prints on the dialog's paper, not the deck's 16:9 page. For true 16:9 pages: Paper Size → <b>Manage Custom Sizes…</b> → 13.33 × 7.5 in (338.7 × 190.5 mm), margins 0 — and tick <b>Print backgrounds</b>. Chrome exports 16:9 automatically.`
+      : `16:9 pages, one per slide — the page size comes from the deck, whatever paper the dialog names. Set margins <b>None</b> and background graphics <b>on</b>.`;
+    const actions = hasNotes
+      ? `<button class="btn" id="pdf-notes">With speaker notes</button>
+          <button class="btn btn--primary" id="pdf-plain">Slides only</button>`
+      : `<button class="btn btn--primary" id="pdf-plain">Open print dialog</button>`;
     layer.innerHTML = `
       <div class="pop" id="pdf-pop">
         <h4>Export PDF</h4>
-        <p class="pop__sub">16:9 pages, one per slide — the page size comes from the deck, whatever paper the dialog names. Set margins <b>None</b> and background graphics <b>on</b>.</p>
-        <div class="pop__actions">
-          <button class="btn" id="pdf-notes">With speaker notes</button>
-          <button class="btn btn--primary" id="pdf-plain">Slides only</button>
-        </div>
+        <p class="pop__sub">${sub}</p>
+        <div class="pop__actions">${actions}</div>
       </div>`;
     positionPopover($("#pdf-pop"), anchor);
     $("#pdf-plain").onclick = () => { closePopover(); print(); };
-    $("#pdf-notes").onclick = () => {
+    const notesBtn = $("#pdf-notes");
+    if (notesBtn) notesBtn.onclick = () => {
       closePopover();
       document.body.classList.add("show-notes");
       print();
@@ -1620,6 +1676,7 @@
     show(Math.max(0, (parseInt(location.hash.slice(1), 10) || 1) - 1), false, "fwd");
     booted = true;
     document.body.classList.add("is-ready");
+    degrainImages();
     window.slidecraft = { serialize };     // programmatic access for tooling and tests
     measureAll();
     document.fonts?.ready?.then(measureAll);

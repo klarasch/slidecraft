@@ -165,6 +165,10 @@ number to say out loud. Never a transcript. Never a restatement of the slide.
 - Nothing supplied → emit empty slots (`<figure class="media split__media"></figure>`). They
   render as click-to-upload targets.
 - **Never invent an image path.** A broken image is worse than an empty slot.
+- If you author decorative SVG assets, don't bake `feTurbulence` grain into them — printed to
+  PDF it rasterizes into megabytes of noise per page. The runtime strips such grain at boot and
+  substitutes a screen-only CSS overlay, but SVGs that are clean to begin with also print
+  correctly from `file://` pages, where the runtime can't rewrite them.
 
 **Build the share file.** After writing `deck.html`, run:
 

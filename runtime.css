@@ -64,8 +64,9 @@ body {
   box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.7);
 }
 
-/* presenting: edge-to-edge, no card */
-html:fullscreen { --slide-radius: 0; }
+/* presenting: edge-to-edge, no card, black surround regardless of theme */
+html:fullscreen { --slide-radius: 0; background: #000; }
+html:fullscreen body { background: #000; }
 html:fullscreen .deck { box-shadow: none; }
 
 .slide {
@@ -302,6 +303,19 @@ code {
   height: 100%;
   object-fit: cover;
 }
+/* Grain the runtime stripped out of an SVG asset (degrainImages) comes back
+   as this screen-only overlay — same turbulence recipe, but living in CSS so
+   @media print can drop it. Baked-in grain rasterizes at print DPI into
+   megabytes of incompressible noise per page. z-index 1: above the image,
+   below pins (4) and the hover chrome (3). */
+.media[data-grain]::after {
+  content: "";
+  position: absolute; inset: 0; z-index: 1;
+  pointer-events: none;
+  background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="240" height="240"%3E%3Cfilter id="g"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3"/%3E%3CfeColorMatrix type="saturate" values="0"/%3E%3C/filter%3E%3Crect width="240" height="240" filter="url(%23g)"/%3E%3C/svg%3E');
+  opacity: .17;
+}
+
 .media:empty::after,
 .media[data-empty]::after {
   content: "＋  image";
@@ -1103,6 +1117,7 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
   @media (orientation: landscape) { .slide { zoom: 0.8; } }
   .slide { zoom: calc(100vw / 1280px); }
   .badge, .slide__overflow-badge, .media-hover, .handle, .slide__placeholder-note { display: none !important; }
+  .media[data-grain]::after { display: none !important; }   /* grain is screen-only — printed, it rasterizes huge */
   .slide { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .slide[data-fit] > * { zoom: 1 !important; }
   [data-step] { opacity: 1 !important; transform: none !important; }
