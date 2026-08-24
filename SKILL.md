@@ -178,18 +178,23 @@ python3 <this skill's folder>/standalone.py <deck folder>/deck.html
 
 It writes `deck-standalone.html` beside the deck — one self-contained file (runtime, theme,
 images baked in; markup on top, compacted runtime at the end) that the user can send as is.
-This is the primary deliverable in Cowork, where people share files directly. **Never inline
+**This is the deliverable, on every surface** — the only file you hand the user. The folder
+deck (`deck.html` + assets) is your workspace: it keeps revisions cheap (no base64 in context),
+diffs small, and picks up runtime fixes — but the user never needs to open it, and opened via
+`file://` it can't even export itself. Don't present it as an alternative. **Never inline
 assets yourself** — the script exists so base64 never enters your context. If `python3` is
 genuinely unavailable, say so and point at the deck's **Single file** toolbar button instead.
 
 **Hand off in four lines, no more.**
 
 ```
-Deck: ./q3-platform-review/deck.html — 18 slides.
-Share: ./q3-platform-review/deck-standalone.html — one file, send it as is.
-Open either: double-click (Chrome).
+Deck: ./q3-platform-review/deck-standalone.html — 18 slides, one file. Open it (Chrome), send it as is.
+Source: ./q3-platform-review/deck.html — I edit this for revisions; you don't need to open it.
 Keys: → ← navigate · E edit · O overview · S presenter · P PDF · F fullscreen.
 ```
+
+When no folder outlives the session (chat), skip the Source line — the standalone is also the
+file revisions start from.
 
 ---
 
@@ -216,6 +221,12 @@ cannot be reskinned away from the brand mid-talk.
 ## 5. Revise
 
 The user's `deck.html` is the source of truth. **Never regenerate it.** Edit in place.
+
+One exception: if `deck-standalone.html` beside it is **newer** than `deck.html`, the user
+edited the deck in the browser and saved — the standalone holds their latest slides and
+`data-note` requests. Port its slide markup (everything inside `.deck`, plus `<body>`
+attributes) back into `deck.html` first, leaving the standalone's inlined `<style>`/`<script>`
+tail behind, then revise `deck.html` as usual.
 
 1. Read `<meta name="slidecraft-brief">` to recover the tier and tone. Stay consistent with them.
 2. `grep -o 'data-note="[^"]*"' deck.html` — every hit is a change request from the user, written
