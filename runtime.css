@@ -9,6 +9,7 @@
   --slide-h: 720px;
   --pad: 84px;
   --slide-radius: 14px;
+  --deck-pad: 0.94;   /* windowed inset around the deck card; 1 = edge-to-edge (fullscreen forces 1) */
 
   --font-display: "Inter Tight", "Inter", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -51,15 +52,18 @@ body {
 }
 
 .deck {
-  /* absolute centring: a grid track would size to 1280px and push the centre off-screen
-     on narrow / portrait viewports */
+  /* absolute positioning: a grid track would size to 1280px and push the centre off-screen
+     on narrow / portrait viewports. fit() computes --deck-x/--deck-y as whole pixels (the
+     notes-drawer gutter folded in) and snaps --scale so both scaled dimensions are integers —
+     a fractional transform puts every glyph off the device pixel grid and visibly softens
+     text on large displays. Integer translate must come BEFORE scale, from origin 0 0. */
   position: absolute;
-  left: calc(50% - var(--notes-gutter, 0px) / 2);   /* shift left while the notes drawer is open */
-  top: 50%;
+  left: 0;
+  top: 0;
   width: var(--slide-w);
   height: var(--slide-h);
-  transform: translate(-50%, -50%) scale(var(--scale, 1));
-  transform-origin: center center;
+  transform: translate(var(--deck-x, 0px), var(--deck-y, 0px)) scale(var(--scale, 1));
+  transform-origin: 0 0;
   border-radius: var(--slide-radius);
   box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.7);
 }
@@ -73,7 +77,9 @@ html:fullscreen .deck { box-shadow: none; }
   position: absolute;
   inset: 0;
   padding: var(--pad);
-  background: var(--bg);
+  /* --slide-bg lets a theme compose a per-slide surface (gradient, panel)
+     without re-declaring this rule */
+  background: var(--slide-bg, var(--bg));
   color: var(--fg);
   border-radius: var(--slide-radius);
   overflow: hidden;
@@ -84,7 +90,9 @@ html:fullscreen .deck { box-shadow: none; }
 }
 
 .slide.is-active { opacity: 1; visibility: visible; transform: none; z-index: 2; }
-.slide.is-leaving { visibility: visible; z-index: 1; }
+/* the leaving slide sits ON TOP of the entering one and fades out alone —
+   see the transitions block for why (single-sided fade, no background blink) */
+.slide.is-leaving { visibility: visible; z-index: 3; }
 
 /* Before the runtime boots — and wherever scripts never run (Quick Look,
    preview panes) — show the title slide, fitted to the viewport, so a
@@ -95,7 +103,9 @@ html:fullscreen .deck { box-shadow: none; }
 body:not(.is-ready) { background: var(--bg); }
 body:not(.is-ready) .deck .slide:first-child { opacity: 1; visibility: visible; border-radius: 0; }
 body:not(.is-ready) .deck {
+  left: 50%; top: 50%;
   transform: translate(-50%, -50%) scale(min(100vw / 1280px, 100vh / 720px));
+  transform-origin: center center;
   border-radius: 0; box-shadow: none;
 }
 
@@ -116,29 +126,56 @@ body:not(.is-editing):not(.is-overview) .slide[data-tx="rise"].is-active > *:not
    Slide transitions — data-transition on <body> (deck default) or a
    <section> (per-slide override). Computed effective value lands on
    [data-tx] (derived, stripped on save). Direction follows body[data-dir].
+
+   Motion is applied to slide CONTENT (direct children, minus chrome and
+   wash), never to the slide box: a theme may paint imagery behind
+   translucent slides, and a travelling box drags its background edge
+   across the frame as a visible seam.
+
+   Only ONE layer ever fades: the leaving slide sits on top (z-index 3)
+   and fades out over the already fully-opaque entering slide. A symmetric
+   cross-fade of two identical backgrounds dips to ~75% coverage at its
+   midpoint and reads as a blink; fading one layer over an opaque twin is
+   pixel-identical throughout, so between same-surface slides only the
+   content appears to change. Wipe instead clips the entering slide in on
+   top of a still, fully-opaque leaving slide — same property, no fade.
    ========================================================================= */
-.slide[data-tx="fade"].is-entering { opacity: 0; }
-.slide[data-tx="fade"].is-entering.is-active { transition: opacity var(--tx-dur) var(--ease); opacity: 1; }
+/* fade: a pure dissolve — the old slide fades away over the new one */
 .slide[data-tx="fade"].is-leaving { transition: opacity var(--tx-dur) var(--ease); opacity: 0; }
 
-.slide[data-tx="rise"].is-entering { opacity: 0; transform: translateY(14px); }
-.slide[data-tx="rise"].is-entering.is-active { transition: opacity var(--tx-dur) var(--ease), transform var(--tx-dur) var(--ease); opacity: 1; transform: none; }
-.slide[data-tx="rise"].is-leaving { transition: opacity var(--tx-dur) var(--ease), transform var(--tx-dur) var(--ease); opacity: 0; transform: translateY(-10px); }
+/* rise: entry motion is the child stagger animation above; leaving drifts up as it fades */
+.slide[data-tx="rise"].is-leaving { transition: opacity var(--tx-dur) var(--ease); opacity: 0; }
+.slide[data-tx="rise"].is-leaving > *:not(.slide__chrome):not(.slide__wash) {
+  transition: transform var(--tx-dur) var(--ease); transform: translateY(-10px);
+}
 
-.slide[data-tx="zoom"].is-entering { opacity: 0; transform: scale(.92); }
-.slide[data-tx="zoom"].is-entering.is-active { transition: opacity var(--tx-dur) var(--ease), transform var(--tx-dur) var(--ease); opacity: 1; transform: none; }
-.slide[data-tx="zoom"].is-leaving { transition: opacity var(--tx-dur) var(--ease), transform var(--tx-dur) var(--ease); opacity: 0; transform: scale(1.06); }
+.slide[data-tx="zoom"].is-entering > *:not(.slide__chrome):not(.slide__wash) { opacity: 0; transform: scale(.92); }
+.slide[data-tx="zoom"].is-entering.is-active > *:not(.slide__chrome):not(.slide__wash) {
+  transition: opacity var(--tx-dur) var(--ease), transform var(--tx-dur) var(--ease);
+  opacity: 1; transform: none;
+}
+.slide[data-tx="zoom"].is-leaving { transition: opacity var(--tx-dur) var(--ease); opacity: 0; }
+.slide[data-tx="zoom"].is-leaving > *:not(.slide__chrome):not(.slide__wash) {
+  transition: transform var(--tx-dur) var(--ease); transform: scale(1.06);
+}
 
-.slide[data-tx="push"].is-entering { opacity: 1; transform: translateX(100%); }
-body[data-dir="back"] .slide[data-tx="push"].is-entering { transform: translateX(-100%); }
-.slide[data-tx="push"].is-entering.is-active { transition: transform var(--tx-dur) var(--ease); transform: none; }
-.slide[data-tx="push"].is-leaving { opacity: 1; transition: transform var(--tx-dur) var(--ease); transform: translateX(-100%); }
-body[data-dir="back"] .slide[data-tx="push"].is-leaving { transform: translateX(100%); }
+/* push: content travels a full slide width; the surfaces never move */
+.slide[data-tx="push"].is-entering > *:not(.slide__chrome):not(.slide__wash) { transform: translateX(var(--slide-w)); }
+body[data-dir="back"] .slide[data-tx="push"].is-entering > *:not(.slide__chrome):not(.slide__wash) { transform: translateX(calc(-1 * var(--slide-w))); }
+.slide[data-tx="push"].is-entering.is-active > *:not(.slide__chrome):not(.slide__wash) {
+  transition: transform var(--tx-dur) var(--ease); transform: none;
+}
+.slide[data-tx="push"].is-leaving { transition: opacity var(--tx-dur) var(--ease); opacity: 0; }
+.slide[data-tx="push"].is-leaving > *:not(.slide__chrome):not(.slide__wash) {
+  transition: transform var(--tx-dur) var(--ease); transform: translateX(calc(-1 * var(--slide-w)));
+}
+body[data-dir="back"] .slide[data-tx="push"].is-leaving > *:not(.slide__chrome):not(.slide__wash) { transform: translateX(var(--slide-w)); }
 
+/* wipe: the entering slide clips in on top — the leaving slide stays below, still and opaque */
 .slide[data-tx="wipe"].is-entering { clip-path: inset(0 0 0 100%); }
 body[data-dir="back"] .slide[data-tx="wipe"].is-entering { clip-path: inset(0 100% 0 0); }
 .slide[data-tx="wipe"].is-entering.is-active { transition: clip-path var(--tx-dur) var(--ease); clip-path: inset(0 0 0 0); }
-.slide[data-tx="wipe"].is-leaving { opacity: 1; }
+.slide[data-tx="wipe"].is-leaving { opacity: 1; z-index: 1; }
 
 /* =========================================================================
    Progressive reveal — data-reveal on a container marks its direct children
@@ -377,10 +414,10 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
 .slide--section {
   justify-content: center;
   gap: 22px;
-  background: var(--accent);
-  color: var(--accent-fg);
+  background: var(--slide-bg, var(--accent));
+  color: var(--section-fg, var(--accent-fg));
 }
-.slide--section .eyebrow { color: color-mix(in oklab, var(--accent-fg) 70%, transparent); }
+.slide--section .eyebrow { color: color-mix(in oklab, var(--section-fg, var(--accent-fg)) 70%, transparent); }
 .slide--section .display { font-size: 108px; }
 .slide--section .slide__wash { opacity: .25; }
 .slide--section .index {
@@ -868,6 +905,20 @@ html:fullscreen body.is-idle { cursor: none; }
   background: #0e0e13; color: #f6f5f3; font: 400 14px/1.5 var(--font-body);
 }
 .pop__row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; }
+/* the options popover is wider than the base .pop so common enum rows fit on
+   one line; rows and segments both wrap as the structural guarantee — brand
+   registries declare value lists of any length */
+#opts-pop { width: min(560px, calc(100vw - 32px)); }
+.opt-rows { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; min-width: 340px; }
+.opt-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 18px; flex-wrap: wrap; }
+.opt-row__label { font-size: 12.5px; color: rgba(246, 245, 243, .7); white-space: nowrap; }
+.opt-row__seg { display: flex; flex-wrap: wrap; gap: 3px; background: rgba(255, 255, 255, .06); border-radius: 8px; padding: 3px; }
+.opt {
+  border: 0; background: transparent; color: rgba(246, 245, 243, .6);
+  font: 500 12px/1 var(--font-body); padding: 6px 10px; border-radius: 6px; cursor: pointer;
+}
+.opt:hover { color: #fff; }
+.opt.is-on { background: rgba(255, 255, 255, .16); color: #fff; }
 .pop__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 .pop__row small { color: rgba(246, 245, 243, .45); font-size: 12px; }
 .pop::after {
@@ -883,7 +934,7 @@ html:fullscreen body.is-idle { cursor: none; }
 .btn--quiet { border-color: transparent; color: rgba(246, 245, 243, .6); }
 .btn--ghost { border-color: rgba(124, 92, 255, .6); color: #cdbfff; }
 
-.picker { width: 640px; padding: 20px; }
+.picker { width: min(640px, calc(100vw - 32px)); padding: 20px; }
 .picker__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
 .tile {
   appearance: none; text-align: left; cursor: pointer;
@@ -1117,7 +1168,9 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
 @media print {
   @page { size: 13.333in 7.5in; margin: 0; }
   html, body { overflow: visible; background: #fff; height: auto; }
-  [data-runtime] { display: none !important; }
+  /* data-runtime="print" opts a chrome element into the PDF (it is still
+     stripped from saves like any other [data-runtime] node) */
+  [data-runtime]:not([data-runtime="print"]) { display: none !important; }
   .stage { position: static; display: block; padding: 0 !important; }
   .deck {
     position: static; left: auto; top: auto;      /* the screen layout centres it absolutely; print must flow */

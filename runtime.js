@@ -170,11 +170,20 @@
   }
 
   function fit() {
-    const pad = overviewOpen || document.fullscreenElement ? 1 : 0.94;
+    const padTok = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--deck-pad"));
+    const pad = overviewOpen || document.fullscreenElement ? 1 : (Number.isFinite(padTok) ? padTok : 0.94);
     const rightGutter = notesOpen ? 340 : 0;
-    const scale = Math.min((innerWidth - rightGutter) / W, innerHeight / H) * pad;
-    document.documentElement.style.setProperty("--scale", scale.toFixed(4));
-    document.documentElement.style.setProperty("--notes-gutter", rightGutter + "px");
+    const raw = Math.min((innerWidth - rightGutter) / W, innerHeight / H) * pad;
+    // snap to the pixel grid: floor the scaled width to a whole multiple of 16
+    // (1280/16 and 720/16 are integral, so both scaled dimensions land on whole
+    // pixels — costs at most 16px of width) and centre with an integer translate.
+    // The matching transform lives on .deck in runtime.css.
+    const scale = Math.max(16, Math.floor((W * raw) / 16) * 16) / W;
+    const st = document.documentElement.style;
+    st.setProperty("--scale", String(scale));
+    st.setProperty("--deck-x", Math.round((innerWidth - rightGutter - W * scale) / 2) + "px");
+    st.setProperty("--deck-y", Math.round((innerHeight - H * scale) / 2) + "px");
+    st.setProperty("--notes-gutter", rightGutter + "px");
   }
 
   /* -------------------------------------------------------- progressive reveal */
@@ -610,12 +619,31 @@
     return compact(await (await fetch(path)).text());
   }
 
+  // rewrite a stylesheet's relative url() references (fonts, ornaments,
+  // icons) to data: URIs, resolving against the stylesheet's own folder —
+  // themes/x.css referring to ../assets/y.woff2 must resolve correctly.
+  // Fragment-only refs (SVG filters) and anything isRelSrc rejects pass
+  // through; so does a target that fails to fetch.
+  const CSS_URL = /url\(\s*(['"]?)([^)'"]+)\1\s*\)/g;
+  async function inlineCSSUrls(css, baseHref) {
+    const base = new URL(baseHref, location.href);
+    const done = new Map();
+    for (const [raw, , u] of css.matchAll(CSS_URL)) {
+      if (done.has(raw) || u.startsWith("#") || u.startsWith("%23") || !isRelSrc(u)) continue;
+      try {
+        const res = await fetch(new URL(u, base));
+        if (res.ok) done.set(raw, `url(${await toDataURL(await res.blob())})`);
+      } catch { /* leave the reference as written */ }
+    }
+    return css.replace(CSS_URL, m => done.get(m) ?? m);
+  }
+
   async function inlineAssets(root) {
     const css = [], js = [];
     for (const link of [...root.querySelectorAll('link[rel="stylesheet"]')]) {
       const href = link.getAttribute("href");
       if (!isRelSrc(href)) continue;
-      css.push(await fetchAsset(href, minifyCSS));
+      css.push(await inlineCSSUrls(await fetchAsset(href, minifyCSS), href));
       link.remove();
     }
     for (const s of [...root.querySelectorAll("script[src]")]) {
@@ -654,17 +682,66 @@
     root.dataset.standalone = "";
   }
 
+  /* ---------------------------------------------------- per-slide options */
+  // Every data-* option the runtime uses is declared here, split on the one
+  // axis that matters: AUTHORED options are part of the deck and survive a
+  // save; DERIVED ones are computed at display time and stripped from every
+  // save, wherever they appear. Extensions declare theirs the same way:
+  //   window.slidecraft.options.declare({ name: "data-surface", derived: true })
+  //   window.slidecraft.options.declare({ name: "data-veil", label: "Veil",
+  //     values: ["soft", "dense"], hint: "Scrim strength over the gradient." })
+  // A declaration with `values` is validated at boot (typos warn instead of
+  // failing silently) and gets a control in the edit-mode Slide-options panel
+  // for free; `type: "flag"` renders an on/off toggle there. TRANSIENT is the
+  // derived set — window.slidecraft.transient.add() still works and is
+  // equivalent to declaring { name, derived: true }.
+  const TRANSIENT = new Set();
+  const OPTIONS = new Map();
+  function declareOption(def) {
+    const d = { on: "slide", type: def.values ? "enum" : (def.type || "text"), ...def };
+    OPTIONS.set(d.name, d);
+    if (d.derived) TRANSIENT.add(d.name);
+    return d;
+  }
+  [
+    { name: "data-fit", derived: true },
+    { name: "data-overflow", derived: true },
+    { name: "data-tx", derived: true },
+    { name: "data-step", derived: true },
+    { name: "data-empty", derived: true },
+    { name: "data-title", label: "Title", type: "text" },
+    { name: "data-note", label: "Change request", type: "text" },
+    { name: "data-transition", label: "Transition", values: ["fade", "rise", "zoom", "push", "wipe", "none"], hint: "How this slide enters. Default follows the deck." },
+    { name: "data-bare", label: "Bare", type: "flag", hint: "Hide the footer — logo, label, page number." },
+  ].forEach(declareOption);
+
+  function validateOptions() {
+    slides.forEach((s, i) => {
+      OPTIONS.forEach(o => {
+        if (o.on !== "slide" || !o.values) return;
+        const v = s.getAttribute(o.name);
+        if (v !== null && v !== "" && !o.values.includes(v))
+          console.warn(`slidecraft: slide ${i + 1} has ${o.name}="${v}" — expected one of: ${o.values.join(", ")}`);
+      });
+    });
+  }
+
   async function serialize({ inline }) {
     const root = document.documentElement.cloneNode(true);
+    // extensions get the clone before the strip pass — e.g. to bake an asset
+    // bundle into a single-file export. waitUntil() defers the save for async
+    // work (fetching assets to inline).
+    const jobs = [];
+    emit("serialize", { root, inline: !!inline, waitUntil: p => jobs.push(p) });
+    await Promise.all(jobs);
     root.querySelectorAll("[data-runtime],[data-gen]").forEach(n => n.remove());
     root.querySelectorAll(".slide").forEach(s => {
       s.classList.remove("is-active", "is-entering", "is-leaving");
-      s.removeAttribute("data-fit");
-      s.removeAttribute("data-overflow");
-      s.removeAttribute("data-tx");
     });
+    TRANSIENT.forEach(a =>
+      root.querySelectorAll(`[${a}]`).forEach(n => n.removeAttribute(a)));
     root.querySelectorAll(".slide--placeholder").forEach(s => { s.innerHTML = ""; });
-    root.querySelectorAll("[data-step]").forEach(n => { n.removeAttribute("data-step"); n.classList.remove("is-revealed"); });
+    root.querySelectorAll(".is-revealed").forEach(n => n.classList.remove("is-revealed"));   // data-step itself is in TRANSIENT
     root.querySelector("body")?.removeAttribute("data-dir");
     root.querySelectorAll("[contenteditable]").forEach(n => {
       n.removeAttribute("contenteditable"); n.removeAttribute("spellcheck");
@@ -1010,7 +1087,7 @@
   }
 
   /* ---------------------------------------------------------------- chrome */
-  const ICONS = `<svg width="0" height="0" style="position:absolute" aria-hidden="true" data-runtime><symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol><symbol id="i-next" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol><symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol><symbol id="i-present" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol><symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9.5 14.5L12 17l2.5-2.5"/></symbol><symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13 7l3 3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-dup" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></symbol><symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol><symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7M12 17h.01"/></symbol><symbol id="i-notes" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></symbol><symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-8 8"/></symbol><symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol></svg>`;
+  const ICONS = `<svg width="0" height="0" style="position:absolute" aria-hidden="true" data-runtime><symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol><symbol id="i-next" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol><symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol><symbol id="i-present" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol><symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9.5 14.5L12 17l2.5-2.5"/></symbol><symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13 7l3 3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-dup" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></symbol><symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol><symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7M12 17h.01"/></symbol><symbol id="i-notes" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></symbol><symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-8 8"/></symbol><symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></symbol></svg>`;
 
   const SHORTCUTS = [
     ["→ / space", "Next"], ["←", "Previous"], ["Home", "First slide"], ["End", "Last slide"],
@@ -1094,6 +1171,7 @@
       ${btn({ id: "btn-dup", icon: "dup", cls: "icon-only", key: "⌘D", tip: "Duplicate slide" })}
       ${btn({ id: "btn-del", icon: "trash", cls: "icon-only", key: "⌫", tip: "Delete slide" })}
       <span class="tb-sep"></span>
+      ${btn({ id: "btn-opts", icon: "sliders", label: "Options", tip: "Per-slide options — transition, footer, brand extras" })}
       ${btn({ id: "btn-note", icon: "spark", label: "Request change", tip: "Flag this slide for Claude to revise later" })}
       ${btn({ id: "btn-notes", icon: "notes", label: "Speaker notes", tip: "Add notes for presenter view and printed PDFs" })}
       <span class="tb-sep"></span>
@@ -1117,6 +1195,7 @@
       $("#btn-add").onclick = e => openPicker(e.currentTarget);
       $("#btn-dup").onclick = duplicateSlide;
       $("#btn-del").onclick = deleteSlide;
+      $("#btn-opts").onclick = e => openPopover("options", e.currentTarget);
       $("#btn-note").onclick = e => openPopover("note", e.currentTarget);
       $("#btn-notes").onclick = toggleNotesDrawer;
       $("#btn-undo").onclick = undo;
@@ -1188,10 +1267,20 @@
   }
 
   /* -------------------------------------------------------------- popovers */
-  function closePopover() { $("#pop-layer").innerHTML = ""; }
+  let popAnchor = null;   // the element that opened the current popover — its own
+                          // clicks toggle, so the outside-click closer ignores them
+  function closePopover() { $("#pop-layer").innerHTML = ""; popAnchor = null; }
 
+  // clicking the opening button again closes; renderPopover bypasses the
+  // toggle so option clicks can re-render in place
   function openPopover(kind, anchor) {
+    if ($(kind === "note" ? "#note-pop" : "#opts-pop")) return closePopover();
+    renderPopover(kind, anchor);
+  }
+
+  function renderPopover(kind, anchor) {
     closePicker();
+    popAnchor = anchor || null;
     const layer = $("#pop-layer");
     const cur = slides[index];
     if (kind === "note") {
@@ -1216,6 +1305,36 @@
       $("#note-remove").onclick = () => { setNote(""); closePopover(); };
       $("#note-save").onclick = () => { setNote(ta.value); closePopover(); };
     }
+    if (kind === "options") {
+      // one row per declared slide option that can be picked from a list —
+      // enum options as a segmented control (plus Default = attribute unset),
+      // flags as Off/On. Brand extensions land here automatically.
+      const editable = [...OPTIONS.values()].filter(o => o.on === "slide" && !o.derived && (o.values || o.type === "flag"));
+      const row = o => {
+        const curV = cur.getAttribute(o.name);
+        const seg = o.type === "flag"
+          ? [["", "Off"], ["on", "On"]].map(([v, lab]) =>
+              `<button class="opt${(curV !== null) === (v === "on") ? " is-on" : ""}" data-name="${o.name}" data-v="${v}">${lab}</button>`).join("")
+          : [["", "Default"], ...o.values.map(v => [v, v])].map(([v, lab]) =>
+              `<button class="opt${(curV ?? "") === v ? " is-on" : ""}" data-name="${o.name}" data-v="${escapeHtml(v)}">${escapeHtml(lab)}</button>`).join("");
+        return `<div class="opt-row"><span class="opt-row__label"${o.hint ? ` data-tip="${escapeHtml(o.hint)}"` : ""}>${escapeHtml(o.label || o.name)}</span><span class="opt-row__seg">${seg}</span></div>`;
+      };
+      layer.innerHTML = `
+        <div class="pop" id="opts-pop">
+          <h4>Slide options</h4>
+          <p class="pop__sub">Saved on the slide's markup. Slide ${index + 1} of ${slides.length}.</p>
+          <div class="opt-rows">${editable.map(row).join("")}</div>
+        </div>`;
+      positionPopover($("#opts-pop"), anchor);
+      $$(".opt", layer).forEach(b => b.onclick = () => {
+        const { name, v } = b.dataset;
+        const def = OPTIONS.get(name);
+        snapshot();
+        if (def.type === "flag") { if (v === "on") cur.setAttribute(name, ""); else cur.removeAttribute(name); }
+        else if (v) cur.setAttribute(name, v); else cur.removeAttribute(name);
+        renderPopover("options", anchor);          // re-render with the new state
+      });
+    }
   }
   // PDF export: pages are 16:9 by @page rule in Chromium; Safari ignores
   // @page size and prints on the dialog's paper, so it always gets the
@@ -1223,9 +1342,11 @@
   // speaker notes, also offer slides-only vs with-notes.
   const isSafari = /apple/i.test(navigator.vendor || "");
   function exportPDF(anchor) {
+    if ($("#pdf-pop")) return closePopover();      // second click toggles
     const hasNotes = !!$(".notes", deck);
     if (!hasNotes && !isSafari) return print();
     closePicker();
+    popAnchor = anchor || null;
     const layer = $("#pop-layer");
     const sub = isSafari
       ? `Safari prints on the dialog's paper, not the deck's 16:9 page. For true 16:9 pages: Paper Size → <b>Manage Custom Sizes…</b> → 13.33 × 7.5 in (338.7 × 190.5 mm), margins 0 — and tick <b>Print backgrounds</b>. Chrome exports 16:9 automatically.`
@@ -1261,7 +1382,11 @@
   function positionPopover(el, anchor) {
     const r = anchor?.getBoundingClientRect();
     const bar = $("#toolbar").getBoundingClientRect();
-    el.style.left = ((r ? r.left + r.width / 2 : innerWidth / 2)) + "px";
+    // centre on the anchor, clamped so the popover stays on-screen (it is
+    // translateX(-50%)-centred, so clamp the centre point by half its width)
+    const half = el.offsetWidth / 2;
+    const x = Math.min(Math.max(r ? r.left + r.width / 2 : innerWidth / 2, half + 16), innerWidth - half - 16);
+    el.style.left = x + "px";
     el.style.bottom = (innerHeight - bar.top + 14) + "px";
   }
 
@@ -1294,7 +1419,9 @@
   }
 
   function openPicker(anchor) {
+    if ($("#add-pop")) return closePopover();      // second click toggles
     closePopover();
+    popAnchor = anchor || null;
     const layer = $("#pop-layer");
     layer.innerHTML = `
       <div class="pop picker" id="add-pop">
@@ -1556,6 +1683,16 @@
     addEventListener("resize", debounce(measureAll, 150));
     addEventListener("fullscreenchange", fit);
 
+    // clicking outside an open popover dismisses it. The anchor that opened
+    // it is exempt — its own click handler toggles, and closing here first
+    // would make that click reopen instead
+    document.addEventListener("pointerdown", e => {
+      if (!$("#pop-layer").innerHTML) return;
+      if (e.target.closest("#pop-layer")) return;
+      if (popAnchor && popAnchor.contains(e.target)) return;
+      closePopover();
+    });
+
     // overflow guard: re-measure the current slide as its content changes,
     // and any slide once its images finish loading
     deck.addEventListener("input", debounce(() => measureOverflow(slides[index]), 250));
@@ -1705,7 +1842,19 @@
     booted = true;
     document.body.classList.add("is-ready");
     degrainImages();
-    window.slidecraft = { serialize };     // programmatic access for tooling and tests
+    validateOptions();
+    // programmatic access for tooling, tests and brand extensions:
+    // options   — per-slide option registry (declare / get / all); declared
+    //             derived options are stripped on save, declared values get
+    //             boot validation and a Slide-options control for free
+    // transient — the derived-attribute set behind it (add() still works)
+    // snapshot  — push the current deck state onto the undo stack (call
+    //             BEFORE mutating, so ⌘Z lands on the extension's edit)
+    // toast     — the runtime's own transient message UI
+    window.slidecraft = {
+      serialize, snapshot, toast, transient: TRANSIENT,
+      options: { declare: declareOption, get: n => OPTIONS.get(n), all: () => [...OPTIONS.values()] },
+    };
     measureAll();
     document.fonts?.ready?.then(measureAll);
     initMainChannel();

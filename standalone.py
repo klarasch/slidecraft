@@ -25,6 +25,8 @@ from pathlib import Path
 from urllib.parse import unquote_to_bytes
 
 mimetypes.add_type("image/svg+xml", ".svg")
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("font/woff", ".woff")
 
 
 def min_css(t: str) -> str:
@@ -56,6 +58,26 @@ def data_uri(p: Path) -> str:
     return f"data:{mime};base64,{base64.b64encode(p.read_bytes()).decode()}"
 
 
+CSS_URL = re.compile(r"""url\(\s*(['"]?)([^)'"]+)\1\s*\)""")
+
+
+def inline_css_urls(css: str, base: Path) -> str:
+    """Rewrite a stylesheet's relative url() references (fonts, ornaments,
+    icons) to data: URIs, resolving against the stylesheet's own folder —
+    themes/x.css referring to ../assets/y.woff2 must resolve correctly.
+    Fragment-only refs (SVG filters), anything is_rel rejects, and targets
+    that don't exist on disk pass through unchanged."""
+    def swap(m):
+        u = m.group(2).strip()
+        if u.startswith(("#", "%23")) or not is_rel(u):
+            return m.group(0)
+        target = base / re.sub(r"[?#].*$", "", u)
+        if not target.is_file():
+            return m.group(0)
+        return f"url({data_uri(target)})"
+    return CSS_URL.sub(swap, css)
+
+
 def deck_title(html: str) -> str:
     m = re.search(r"<title>(.*?)</title>", html, re.S)
     name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "", m.group(1)).strip() if m else ""
@@ -74,7 +96,8 @@ def build(deck_path: Path, out_path: Path) -> None:
         href = re.search(r'href="([^"]+)"', tag)
         if not href or not is_rel(href.group(1)):
             return tag
-        css_parts.append(read_asset(folder / href.group(1), min_css))
+        sheet = folder / href.group(1)
+        css_parts.append(inline_css_urls(read_asset(sheet, min_css), sheet.parent))
         return ""
 
     def take_script(m):

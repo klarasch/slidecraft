@@ -63,6 +63,48 @@ deck.addEventListener("slidecraft:step", ({ detail: { index, step, slide } }) =>
 `data-gen` so the save routine strips it (the runtime removes all `[data-gen]` nodes before
 writing `deck.html`; without it your injected DOM gets baked into the saved file).
 
+Beyond events, `window.slidecraft` is the extension API:
+
+```js
+const { options, serialize, snapshot, toast } = window.slidecraft;
+
+// Declare every data-* option your code uses. The axis that matters is
+// authored vs derived: DERIVED options are computed at display time and
+// stripped from every save — without the declaration they get baked into
+// deck.html and read as authored on the next load.
+options.declare({ name: "data-surface", derived: true });
+
+// AUTHORED options declared with `values` (or type: "flag") are validated
+// at boot — a typo like data-veil="med" warns in the console instead of
+// failing silently — and appear in the edit-mode "Options" panel
+// automatically, next to the runtime's own Transition and Bare controls.
+options.declare({ name: "data-veil", label: "Veil", values: ["soft", "dense"],
+                  hint: "Scrim strength over the brand gradient." });
+
+// Undoable edits: push the current deck state BEFORE mutating, and your
+// change lands on the same ⌘Z stack as the runtime's own edits.
+snapshot();
+icon.remove();
+
+// Talk to the user through the runtime's own message UI.
+toast("⌫ to delete");
+```
+
+(`slidecraft.transient` — the raw derived-attribute Set behind the registry —
+is still exported; `transient.add("data-x")` equals declaring `{ derived: true }`.)
+
+Two more hooks round out the contract:
+
+- **`slidecraft:serialize`** fires on `.deck` with `{ root, inline, waitUntil }` before the
+  save's strip pass. `root` is the cloned document — mutate it, not the live DOM. `inline` is
+  true for the single-file export, which is your cue to bake in anything your code normally
+  fetches from the folder (an icon bundle, say); `waitUntil(promise)` holds the save open for
+  that async work. Note the export also inlines relative `url()` refs inside every linked
+  stylesheet, so CSS-referenced assets need no handling at all.
+- **`data-runtime="print"`** — chrome you mount with `data-runtime` is stripped from saves
+  *and* hidden in print. The `"print"` value keeps it visible in the PDF while still keeping
+  it out of saved files.
+
 ## Layer 4 — your own layouts
 
 Add layouts without touching the runtime:

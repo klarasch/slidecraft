@@ -47,6 +47,19 @@ Three rules that save a round trip:
 
 Show the user all nine resolved values before writing the file.
 
+Two optional surface tokens exist for brands whose slides are not a single flat colour —
+leave them unset otherwise:
+
+```css
+--slide-bg:   /* full background composition per slide (gradients, layered images);
+                 falls back to --bg. Scope it to slide classes, e.g.
+                 .slide--section { --slide-bg: linear-gradient(…) } */
+--section-fg: /* text on the section divider when --slide-bg replaced its accent
+                 fill; falls back to --accent-fg */
+--deck-pad:   /* windowed inset around the deck card, default 0.94. Set 1 for a brand
+                 whose deck is meant to fill the window edge-to-edge, no card */
+```
+
 ---
 
 ## 2. Fonts
@@ -64,6 +77,8 @@ Fonts are declared in `runtime.css` `:root` as `--font-display`, `--font-body`, 
 If the brand fonts are licensed files rather than Google Fonts, put the files in `fonts/`, add
 `@font-face` rules at the top of the theme file, and drop the Google Fonts `<link>` from the deck
 `<head>`. Do this whenever you can — it also makes the deck work offline, which matters on stage.
+Single-file exports (the Download-copy button and `standalone.py`) inline relative `url()`
+references from every linked stylesheet, so the font files travel with the exported deck.
 
 ```css
 @font-face {

@@ -41,7 +41,15 @@ exist (`show-notes` class, cleared on afterprint unless `?notes`). Known observa
 mesh-gradient SVGs rasterize huge in Chrome's PDF pipeline (~56 MB) — revisit if real decks hit it.
 Standalone decks re-save and re-export themselves without fetch. The
 browser inlining needs http(s) — file:// decks can't fetch siblings, the button toasts guidance.
-`window.slidecraft = { serialize }` is exposed for tooling.
+`window.slidecraft = { serialize, options, transient, snapshot, toast }` is exposed for
+tooling and brand extensions (CUSTOMIZING.md layer 3). `options.declare` registers per-slide
+data-* options — derived ones are stripped on save, authored ones with `values` get boot
+validation plus a control in the edit-mode Options panel. Saves emit `slidecraft:serialize`
+on `.deck`, and both single-file exporters inline relative `url()` refs inside linked
+stylesheets. Transitions move slide content, never the slide box (translucent-slide themes), and only the
+leaving slide fades — on top of the already-opaque entering one, so identical backgrounds
+stay pixel-steady instead of dipping mid-cross-fade;
+fit() snaps the deck to whole pixels, `--deck-pad` controls the windowed inset.
 Repo vs skill: this repo is the dev source; `./build.sh` assembles the installable skill into
 `dist/slidecraft/` (+ zip) — SKILL/LAYOUTS/BRANDING/CUSTOMIZING, runtime, themes, standalone.py;
 demo deck and repo docs excluded.
