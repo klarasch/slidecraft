@@ -169,9 +169,18 @@
     });
   }
 
+  // --deck-pad is read once (and again on theme swap) rather than per fit():
+  // fit() runs un-debounced on every resize event, and a getComputedStyle
+  // right after fit()'s own :root writes forces a full-document style recalc
+  let deckPad = 0.94;
+  function readDeckPad() {
+    const t = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--deck-pad"));
+    deckPad = Number.isFinite(t) ? t : 0.94;
+  }
+  readDeckPad();
+
   function fit() {
-    const padTok = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--deck-pad"));
-    const pad = overviewOpen || document.fullscreenElement ? 1 : (Number.isFinite(padTok) ? padTok : 0.94);
+    const pad = overviewOpen || document.fullscreenElement ? 1 : deckPad;
     const rightGutter = notesOpen ? 340 : 0;
     const raw = Math.min((innerWidth - rightGutter) / W, innerHeight / H) * pad;
     // snap to the pixel grid: floor the scaled width to a whole multiple of 16
@@ -313,6 +322,10 @@
         `<div class="thumb__frame"><div class="thumb__scaler"></div></div>` +
         `<div class="thumb__label"><span>${String(i + 1).padStart(2, "0")}</span><b></b></div>`;
       const clone = s.cloneNode(true);
+      // a slide cloned mid-transition keeps is-entering/is-leaving, and the
+      // child transforms they trigger are not neutralized by the thumb CSS —
+      // the detached clone never gets the timer that clears them
+      clone.classList.remove("is-entering", "is-leaving");
       clone.classList.add("is-active");
       $(".thumb__scaler", t).append(clone);
       $(".thumb__label b", t).textContent = slideTitle(s);
@@ -622,14 +635,16 @@
   // rewrite a stylesheet's relative url() references (fonts, ornaments,
   // icons) to data: URIs, resolving against the stylesheet's own folder —
   // themes/x.css referring to ../assets/y.woff2 must resolve correctly.
-  // Fragment-only refs (SVG filters) and anything isRelSrc rejects pass
-  // through; so does a target that fails to fetch.
+  // Anything with a #fragment passes through untouched — a data: URI can't
+  // address a fragment (url(file.svg#filter) inlined would resolve to the
+  // whole document, silently killing the filter/mask) — and so does anything
+  // isRelSrc rejects, or a target that fails to fetch.
   const CSS_URL = /url\(\s*(['"]?)([^)'"]+)\1\s*\)/g;
   async function inlineCSSUrls(css, baseHref) {
     const base = new URL(baseHref, location.href);
     const done = new Map();
     for (const [raw, , u] of css.matchAll(CSS_URL)) {
-      if (done.has(raw) || u.startsWith("#") || u.startsWith("%23") || !isRelSrc(u)) continue;
+      if (done.has(raw) || u.includes("#") || !isRelSrc(u)) continue;
       try {
         const res = await fetch(new URL(u, base));
         if (res.ok) done.set(raw, `url(${await toDataURL(await res.blob())})`);
@@ -701,6 +716,10 @@
     const d = { on: "slide", type: def.values ? "enum" : (def.type || "text"), ...def };
     OPTIONS.set(d.name, d);
     if (d.derived) TRANSIENT.add(d.name);
+    // extensions declare after boot (custom.js loads after runtime.js), so the
+    // boot-time validateOptions() pass has already run — validate late arrivals
+    // here or the documented typo warning never fires for exactly them
+    if (booted) validateOption(d);
     return d;
   }
   [
@@ -715,16 +734,15 @@
     { name: "data-bare", label: "Bare", type: "flag", hint: "Hide the footer — logo, label, page number." },
   ].forEach(declareOption);
 
-  function validateOptions() {
+  function validateOption(o) {
+    if (o.on !== "slide" || !o.values) return;
     slides.forEach((s, i) => {
-      OPTIONS.forEach(o => {
-        if (o.on !== "slide" || !o.values) return;
-        const v = s.getAttribute(o.name);
-        if (v !== null && v !== "" && !o.values.includes(v))
-          console.warn(`slidecraft: slide ${i + 1} has ${o.name}="${v}" — expected one of: ${o.values.join(", ")}`);
-      });
+      const v = s.getAttribute(o.name);
+      if (v !== null && v !== "" && !o.values.includes(v))
+        console.warn(`slidecraft: slide ${i + 1} has ${o.name}="${v}" — expected one of: ${o.values.join(", ")}`);
     });
   }
+  const validateOptions = () => OPTIONS.forEach(validateOption);
 
   async function serialize({ inline }) {
     const root = document.documentElement.cloneNode(true);
@@ -877,6 +895,7 @@
 
   function restore(snap) {
     const { html, index: at } = typeof snap === "string" ? { html: snap, index } : snap;
+    closePopover();   // an open popover holds references into the DOM being replaced
     deck.innerHTML = html;
     decorate();
     slides = $$(".slide", deck);
@@ -1262,6 +1281,8 @@
     const cur = link.getAttribute("href").match(/([^/]+)\.css$/)?.[1];
     const nextTheme = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
     link.setAttribute("href", `themes/${nextTheme}.css`);
+    // the new theme may declare a different --deck-pad — refit once it loads
+    link.addEventListener("load", () => { readDeckPad(); fit(); }, { once: true });
     toast(`Theme: ${nextTheme}`);
     if (overviewOpen) buildOverview();
   }
@@ -1329,9 +1350,14 @@
       $$(".opt", layer).forEach(b => b.onclick = () => {
         const { name, v } = b.dataset;
         const def = OPTIONS.get(name);
+        // resolve the slide at click time — `cur` may be detached if the deck
+        // was rebuilt (⌘D, ⌫) while the popover stayed open
+        const s = slides[index];
+        // "" sets a valueless attribute (flag on), null removes it
+        const next = def.type === "flag" ? (v === "on" ? "" : null) : (v || null);
+        if (s.getAttribute(name) === next) return;   // no-op click: don't snapshot/autosave
         snapshot();
-        if (def.type === "flag") { if (v === "on") cur.setAttribute(name, ""); else cur.removeAttribute(name); }
-        else if (v) cur.setAttribute(name, v); else cur.removeAttribute(name);
+        if (next === null) s.removeAttribute(name); else s.setAttribute(name, next);
         renderPopover("options", anchor);          // re-render with the new state
       });
     }

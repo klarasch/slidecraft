@@ -149,8 +149,10 @@ body:not(.is-editing):not(.is-overview) .slide[data-tx="rise"].is-active > *:not
   transition: transform var(--tx-dur) var(--ease); transform: translateY(-10px);
 }
 
-.slide[data-tx="zoom"].is-entering > *:not(.slide__chrome):not(.slide__wash) { opacity: 0; transform: scale(.92); }
-.slide[data-tx="zoom"].is-entering.is-active > *:not(.slide__chrome):not(.slide__wash) {
+/* [data-step] is excluded: the reveal system owns opacity/transform on steps,
+   and this rule's higher specificity would force unrevealed steps visible */
+.slide[data-tx="zoom"].is-entering > *:not(.slide__chrome):not(.slide__wash):not([data-step]) { opacity: 0; transform: scale(.92); }
+.slide[data-tx="zoom"].is-entering.is-active > *:not(.slide__chrome):not(.slide__wash):not([data-step]) {
   transition: opacity var(--tx-dur) var(--ease), transform var(--tx-dur) var(--ease);
   opacity: 1; transform: none;
 }
@@ -1181,10 +1183,13 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
     position: relative; inset: auto;
     width: var(--slide-w); height: var(--slide-h);
     opacity: 1 !important; visibility: visible !important;
-    transform: none !important; border-radius: 0;
+    transform: none !important; clip-path: none !important; border-radius: 0;
     break-after: page; page-break-after: always;
     break-inside: avoid; page-break-inside: avoid;
   }
+  /* transition state lives on slide CHILDREN now — printing inside the 450ms
+     window must not emit a page with its content translated/faded away */
+  .slide.is-entering > *, .slide.is-leaving > * { opacity: 1 !important; transform: none !important; }
   .slide:last-child { break-after: auto; page-break-after: auto; }
   /* Chrome honours the @page size above (page box = 1280px wide → slide prints 1:1). Safari ignores
      @page size and prints on whatever paper the dialog says, so scale the slide to the page width.

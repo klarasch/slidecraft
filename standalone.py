@@ -65,13 +65,17 @@ def inline_css_urls(css: str, base: Path) -> str:
     """Rewrite a stylesheet's relative url() references (fonts, ornaments,
     icons) to data: URIs, resolving against the stylesheet's own folder —
     themes/x.css referring to ../assets/y.woff2 must resolve correctly.
-    Fragment-only refs (SVG filters), anything is_rel rejects, and targets
-    that don't exist on disk pass through unchanged."""
+    Anything with a #fragment passes through untouched (a data: URI can't
+    address a fragment, so inlining url(file.svg#filter) would kill the
+    filter), as do root-absolute /paths (they resolve against a server root
+    this builder doesn't have — and `base / "/x"` would escape the deck
+    folder entirely), anything is_rel rejects, and targets missing on disk.
+    Mirrors the runtime's inlineCSSUrls — keep the two in sync."""
     def swap(m):
         u = m.group(2).strip()
-        if u.startswith(("#", "%23")) or not is_rel(u):
+        if "#" in u or u.startswith("/") or not is_rel(u):
             return m.group(0)
-        target = base / re.sub(r"[?#].*$", "", u)
+        target = base / re.sub(r"\?.*$", "", u)
         if not target.is_file():
             return m.group(0)
         return f"url({data_uri(target)})"
