@@ -249,6 +249,8 @@ All motion is attribute-driven. Never write CSS or keyframes.
 | `data-kenburns` | `figure.media` | slow zoom while the slide is shown | bespoke |
 | `data-reveal-all` | `<section>` | that slide shows its `data-reveal` content all at once — the presenter's per-slide opt-out, also in the edit-mode Options panel | any |
 | `data-list="numbers\|dots"` | `<section class="slide slide--bullets">` | marker style for the list layout (default: numbered) — also in the Options panel | any |
+| `data-crop="cover\|contain"` | `figure.media` | how the image fills its slot: cover crops, contain letterboxes (default: the layout's own — callout media letterbox, the rest cover). Toggled from the image's edit-mode hover chip | any |
+| `data-clean` | `<section class="slide slide--placeholder">` | hide the placeholder prompt and dashed frame — a blank canvas for stacking pasted images, which survive saves on a placeholder | any |
 
 Content-tailored transitions (bespoke tier): stats and big numbers → `zoom`, section
 dividers → `wipe`, quotes → `fade`, full-bleed and full-screen images → `zoom` with

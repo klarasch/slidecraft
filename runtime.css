@@ -370,6 +370,11 @@ code {
   height: 100%;
   object-fit: cover;
 }
+/* authored per-slot override, toggled from the hover chip. The doubled
+   attribute lifts specificity over layout defaults like
+   .slide--callout .callout__media img { object-fit: contain } */
+.media[data-crop="cover"][data-crop] img { object-fit: cover; }
+.media[data-crop="contain"][data-crop] img { object-fit: contain; }
 /* Grain the runtime stripped out of an SVG asset (degrainImages) comes back
    as this screen-only overlay — same turbulence recipe, but living in CSS so
    @media print can drop it. Baked-in grain rasterizes at print DPI into
@@ -616,6 +621,13 @@ body.is-editing .pin.is-sel { outline: 2px solid #fff; outline-offset: 2px; }
    double-click-to-add gesture — only its buttons stay clickable */
 .callout__media .media-hover { pointer-events: none; }
 .callout__media .media-hover span { pointer-events: auto; }
+.media-hover .media-hover__crop {
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: .04em;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+.media-hover .media-hover__crop:hover { border-color: rgba(255, 255, 255, .4); }
 .media-hover .media-hover__hint {
   font: 500 12px/1 var(--font-mono);
   color: rgba(255, 255, 255, .75);
@@ -787,6 +799,10 @@ body.is-editing .pin.is-sel { outline: 2px solid #fff; outline-offset: 2px; }
   border-radius: var(--slide-radius);
 }
 .slide--placeholder .slide__wash { display: none; }
+/* data-clean (the "Blank canvas" option): a placeholder used as a surface to
+   stack stickers on — prompt and dashed frame get out of the way */
+.slide--placeholder[data-clean] { border-color: transparent; }
+.slide--placeholder[data-clean] .slide__placeholder-note { display: none; }
 .slide__placeholder-note {
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   max-width: 32ch;

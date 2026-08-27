@@ -104,9 +104,11 @@
           ov.className = "media-hover";
           ov.dataset.gen = "";
           ov.innerHTML = `<span><svg class="icon"><use href="#i-image"/></svg>Replace image</span>` +
+            `<span class="media-hover__crop"></span>` +
             (m.classList.contains("callout__media")
               ? `<span class="media-hover__hint">Double-click to add a pin · drag pins to move</span>` : "");
           m.append(ov);
+          updateCropChip(m);
         }
       });
 
@@ -400,6 +402,20 @@
     delete slot.dataset.empty;
   }
 
+  // per-slot crop override: data-crop is authored, so it survives saves.
+  // The default is the layout's own — callout media letterboxes, the rest cover.
+  const cropOf = m => m.getAttribute("data-crop") ||
+    (m.classList.contains("callout__media") ? "contain" : "cover");
+  function updateCropChip(m) {
+    const chip = $(".media-hover__crop", m);
+    if (chip) chip.textContent = `Crop: ${cropOf(m)}`;
+  }
+  function toggleCrop(m) {
+    snapshot();
+    m.setAttribute("data-crop", cropOf(m) === "cover" ? "contain" : "cover");
+    updateCropChip(m);
+  }
+
   function addSticker(file) {
     snapshot();
     const rel = fileName(file);
@@ -415,7 +431,7 @@
     ensureStickerHandles(wrap);
     slides[index].append(wrap);
     selectSticker(wrap);
-    toast("Drag to move · corner handles to resize · ⌫ to delete");
+    toast("Drag to move · corner handles to resize · ⌫ to delete · [ ] to layer");
   }
 
   function selectSticker(el) {
@@ -770,6 +786,11 @@
     { name: "data-list", label: "List style", values: ["numbers", "dots"],
       when: ".slide--bullets",
       hint: "Marker style for the list layout. Default is the layout's own (numbered)." },
+    { name: "data-crop", on: "media", label: "Crop", values: ["cover", "contain"],
+      hint: "How an image fills its slot — cover crops to fill, contain letterboxes. Toggled from the image's hover chip." },
+    { name: "data-clean", label: "Blank canvas", type: "flag",
+      when: ".slide--placeholder",
+      hint: "Hide the placeholder prompt and dashed frame — e.g. to stack pasted images on an empty slide." },
   ].forEach(declareOption);
 
   function validateOption(o) {
@@ -796,7 +817,11 @@
     });
     TRANSIENT.forEach(a =>
       root.querySelectorAll(`[${a}]`).forEach(n => n.removeAttribute(a)));
-    root.querySelectorAll(".slide--placeholder").forEach(s => { s.innerHTML = ""; });
+    // a placeholder saves empty — except stickers, which ride along as
+    // reference material for whoever fills the slide later
+    root.querySelectorAll(".slide--placeholder").forEach(s => {
+      [...s.children].forEach(c => { if (!c.classList.contains("sticker")) c.remove(); });
+    });
     root.querySelectorAll(".is-revealed").forEach(n => n.classList.remove("is-revealed"));   // data-step itself is in TRANSIENT
     root.querySelector("body")?.removeAttribute("data-dir");
     root.querySelectorAll("[contenteditable]").forEach(n => {
@@ -1054,8 +1079,29 @@
       const el = e.target;
       if (!isEditableLeaf(el)) return;
       const tag = el.tagName;
-      const bulletsUl = tag === "LI" ? el.closest(".slide--bullets ul") : null;
       const notesOl = tag === "LI" ? el.closest(".callout__notes") : null;
+      // any list in any layout — compare columns, agenda, bullets alike
+      const listEl = tag === "LI" && !notesOl ? el.closest("ul, ol") : null;
+
+      // Shift+Enter: a line break within the element, in any editable leaf.
+      // plaintext-only blocks insertHTML, so place the <br> via the range API
+      if (e.key === "Enter" && e.shiftKey) {
+        e.preventDefault();
+        const sel = getSelection();
+        if (!sel.rangeCount) return;
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        const br = document.createElement("br");
+        range.insertNode(br);
+        // a lone trailing <br> doesn't render a caret line — pad with a twin
+        if (!br.nextSibling) br.after(document.createElement("br"));
+        range.setStartAfter(br);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        measureOverflow(slides[index]);
+        return;
+      }
 
       // callout notes: Enter adds a pin + note pair, Backspace in an empty
       // note removes the pair (pins pair with notes by DOM order)
@@ -1094,7 +1140,7 @@
         return;
       }
 
-      if (e.key === "Enter" && bulletsUl) {
+      if (e.key === "Enter" && listEl) {
         e.preventDefault();
         snapshot();
         const li = document.createElement("li");
@@ -1108,19 +1154,20 @@
       }
 
       if (e.key === "Backspace" && !el.textContent.trim()) {
-        if (bulletsUl) {
-          if (bulletsUl.children.length <= 1) return;      // never remove the last li
+        if (listEl) {
+          if (listEl.children.length <= 1) return;         // never remove the last li
           e.preventDefault();
           snapshot();
           const prevLi = el.previousElementSibling;
           el.remove();
           markRevealSteps();
-          placeCaret(prevLi || bulletsUl.querySelector("li"), true);
+          placeCaret(prevLi || listEl.querySelector("li"), true);
           measureOverflow(slides[index]);
           return;
         }
-        if (["P", "LI", "H3"].includes(tag)) {
-          if (el.classList.contains("display") || el.classList.contains("h1")) return; // protected
+        // any empty leaf deletes — except headlines, which anchor the slide
+        if (tag !== "H1" && tag !== "H2" &&
+            !["display", "h1", "h2"].some(c => el.classList.contains(c))) {
           const parent = el.parentElement;
           if (!parent) return;
           const siblings = [...parent.children].filter(c => c !== el &&
@@ -1151,7 +1198,8 @@
     ["O", "Overview"], ["E", "Edit mode"], ["S", "Presenter view"], ["T", "Cycle theme"],
     ["P", "Export PDF"], ["D", "Download single file"], ["F", "Fullscreen"], ["?", "This sheet"], ["Esc", "Close / finish editing"],
     ["⌘Z", "Undo"], ["⌘⇧Z", "Redo"], ["⌘D", "Duplicate slide"], ["⌫", "Delete selected sticker"],
-    ["Enter", "New bullet (in a list)"], ["Backspace", "Delete empty bullet / element"],
+    ["[ / ]", "Layer selected sticker"],
+    ["Enter", "New list item"], ["⇧Enter", "Line break"], ["Backspace", "Delete empty item / element"],
     ["2×click image", "Add a pin (callout slide)"],
   ];
 
@@ -1831,6 +1879,17 @@
           if (selectedSticker) { snapshot(); selectedSticker.remove(); selectSticker(null); }
           else if (selectedPin) { deletePin(selectedPin); selectPin(null); }
           break;
+        case "[": case "]": {
+          // layer the selected sticker: stickers share z-index 4, so DOM
+          // order among .sticker siblings is the stacking order — and it
+          // serializes for free
+          if (!editing || !selectedSticker) break;
+          const sib = e.key === "]" ? selectedSticker.nextElementSibling : selectedSticker.previousElementSibling;
+          if (!sib?.classList.contains("sticker")) break;
+          snapshot();
+          e.key === "]" ? sib.after(selectedSticker) : sib.before(selectedSticker);
+          break;
+        }
       }
     });
 
@@ -1848,6 +1907,7 @@
       const slot = e.target.closest(".media");
       if (!editing || !slot) return;
       if (e.target.closest(".pin")) return;
+      if (e.target.closest(".media-hover__crop")) { e.stopPropagation(); toggleCrop(slot); return; }
       if (slot.classList.contains("callout__media") && $("img", slot) && !e.target.closest(".media-hover")) return;
       e.stopPropagation();
       lastSlot = slot;
