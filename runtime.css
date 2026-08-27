@@ -246,6 +246,24 @@ body:not(.is-editing):not(.is-overview) .slide.is-active figure[data-kenburns] i
 .eyebrow b { color: var(--muted); font-weight: inherit; margin-inline-end: .45em; }
 .eyebrow b:last-child { margin-inline-end: 0; margin-inline-start: .45em; }
 .eyebrow b:only-child { margin-inline: 0; }
+
+/* content icons — <svg class="glyph"><use href="#i-name"/></svg>, referencing
+   symbols the deck embeds (LAYOUTS.md "Icons"). The icons/ folder ships
+   24×24 stroke sources; this rule is the single place their rendering
+   contract lives, so a brand swapping in filled icons adjusts it here. */
+.glyph {
+  width: 26px; height: 26px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  color: var(--accent);
+}
+.slide--bento .cell .glyph { width: 22px; height: 22px; }
+.slide--bento .cell--accent .glyph { color: var(--accent-fg); }
+.slide--stats .stat .glyph { width: 24px; height: 24px; }
+.slide--compare .col .glyph { width: 22px; height: 22px; }
+/* bullets: a glyph in the marker column replaces that item's counter/dot */
+.slide--bullets li > .glyph { width: 21px; height: 21px; margin-top: 6px; }
+.slide--bullets li:has(> .glyph)::before { content: none; }
 .display {
   font-family: var(--font-display);
   font-size: 92px;

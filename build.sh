@@ -27,6 +27,7 @@ mkdir -p dist/slidecraft
 cp SKILL.md LAYOUTS.md BRANDING.md CUSTOMIZING.md runtime.js runtime.css standalone.py dist/slidecraft/
 [ -f runtime.min.js ] && cp runtime.min.js runtime.min.css dist/slidecraft/
 cp -R themes dist/slidecraft/themes
+cp -R icons dist/slidecraft/icons
 [ -d fonts ] && cp -R fonts dist/slidecraft/fonts
 
 (cd dist && rm -f slidecraft-skill.zip && zip -qr slidecraft-skill.zip slidecraft)

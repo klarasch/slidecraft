@@ -114,6 +114,25 @@ that is intentional: a full-bleed opener with a corner logo looks like a templat
 
 ---
 
+## 3b. Icons
+
+`icons/` holds the deck-content iconset (see LAYOUTS.md "Icons" for where glyphs may appear).
+To brand it, **replace the folder's contents** — nothing else references the set:
+
+- One SVG per icon; the **filename is the id** (`zap.svg` → `#i-zap`), so internal ids in your
+  source files don't matter. Keep filenames semantic (`check`, `shield`, `growth`), never
+  vendor or style names.
+- The rendering contract: `viewBox="0 0 24 24"`, geometry drawn for `stroke: currentColor` at
+  `stroke-width: 2` — the `.glyph` rule in `runtime.css` is the single place that contract is
+  applied, so a filled iconset means flipping that one rule to `fill: currentColor; stroke: none`.
+- Update the "Available names" line in LAYOUTS.md to match the new folder.
+
+Swaps apply at generation time: decks embed the symbols they use, so existing decks keep the
+icons they were born with (same as themes). To change icons in an existing deck, ask Claude to
+swap the symbols in its sprite.
+
+---
+
 ## 4. The voice file — `themes/<name>.md`
 
 The theme controls how the deck looks. This file controls how it reads. Load it whenever the

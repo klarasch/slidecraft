@@ -259,6 +259,41 @@ must read at a glance, and never on `agenda`.
 
 ---
 
+## Icons
+
+The skill ships an `icons/` folder of 24×24 stroke SVGs. A deck embeds **only the icons it
+uses**: copy each file's inner elements into a `<symbol id="i-<filename>" viewBox="0 0 24 24">`
+inside one hidden sprite right after `<body>` —
+
+```html
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="…"/></symbol>
+</svg>
+```
+
+— then reference with `<svg class="glyph"><use href="#i-zap"/></svg>`. The sprite is authored
+content: it survives saves and travels inside single-file exports for free. To change an icon
+later, swap the symbol (and any new `<use>`) in the sprite.
+
+Where glyphs belong (polished/bespoke tier, and only when the deck embeds icons — every slot
+degrades to today's rendering when absent):
+
+- `card` — a glyph **instead of** `.num`, before the `h3`
+- `bento` `.cell` — same, before the `h3`
+- `stats` `.stat` — small glyph before the label (never beside the number)
+- `bullets` `li` — a glyph as the li's first child replaces that item's marker
+- `compare` `.col` — one glyph before the column's `h3`
+
+Nowhere else — title, section, quote, agenda, timeline stay icon-free.
+
+Available names: alert-triangle, arrow-right, arrow-up-right, award, bar-chart, box, calendar,
+check, clock, cloud, code, database, eye, file-text, flag, globe, heart, key, layers,
+lightbulb, link, lock, mail, map-pin, message-circle, pie-chart, plus, refresh, rocket,
+search, shield, sliders, sparkles, star, target, trending-down, trending-up, user, users, x,
+zap.
+
+---
+
 ## Speaker notes
 
 ```html
