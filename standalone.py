@@ -92,6 +92,10 @@ def build(deck_path: Path, out_path: Path) -> None:
     folder = deck_path.parent
     html = deck_path.read_text(encoding="utf-8")
     css_parts, js_parts = [], []
+    theme_blocks: list[tuple[str, str]] = []
+    active_name = {"v": None}
+    themes_m = re.search(r'data-themes="([^"]*)"', html)
+    theme_names = themes_m.group(1).split() if themes_m else []
 
     def take_link(m):
         tag = m.group(0)
@@ -101,6 +105,20 @@ def build(deck_path: Path, out_path: Path) -> None:
         if not href or not is_rel(href.group(1)):
             return tag
         sheet = folder / href.group(1)
+        if 'id="theme"' in tag:
+            # themes travel with the file (mirrors the runtime's inlineAssets):
+            # every declared theme becomes its own <style data-theme> block,
+            # only the active one enabled — cycleTheme flips `media`
+            active = re.search(r"([^/]+)\.css$", href.group(1))
+            active_name["v"] = active.group(1) if active else None
+            names = list(dict.fromkeys(theme_names or [active_name["v"]]))
+            for name in filter(None, names):
+                f = folder / "themes" / f"{name}.css"
+                if f.is_file():
+                    theme_blocks.append((name, inline_css_urls(read_asset(f, min_css), f.parent)))
+            if active_name["v"] and active_name["v"] not in [n for n, _ in theme_blocks] and sheet.is_file():
+                theme_blocks.append((active_name["v"], inline_css_urls(read_asset(sheet, min_css), sheet.parent)))
+            return ""
         css_parts.append(inline_css_urls(read_asset(sheet, min_css), sheet.parent))
         return ""
 
@@ -126,14 +144,21 @@ def build(deck_path: Path, out_path: Path) -> None:
     if logo and is_rel(logo.group(1)):
         html = html.replace(logo.group(0), f'data-logo="{data_uri(folder / logo.group(1))}"')
 
-    html = re.sub(r'\s*data-themes="[^"]*"', "", html)          # before the JS bundle lands
+    if len(theme_blocks) < 2:                                   # one theme baked in — nothing to cycle
+        html = re.sub(r'\s*data-themes="[^"]*"', "", html)      # before the JS bundle lands
     html = html.replace("<html", "<html data-standalone", 1)
     html = html.replace(
         "</head>", '<style id="standalone-guard">body{visibility:hidden}</style>\n</head>', 1
     )
+    disabled = ' media="not all"'
+    theme_css = "".join(
+        f'<style data-theme="{n}"{"" if n == active_name["v"] else disabled}>\n{c}\n</style>\n'
+        for n, c in theme_blocks
+    )
     bundle = (
         "<style>\n" + "\n".join(css_parts) + "\nbody{visibility:visible}\n</style>\n"
-        "<script>\n" + "\n".join(js_parts) + "\n</script>\n"
+        + theme_css
+        + "<script>\n" + "\n".join(js_parts) + "\n</script>\n"
     )
     html = html.replace("</body>", bundle + "</body>", 1)
 
@@ -165,20 +190,31 @@ def store_asset(imgdir: Path, uri: str) -> str:
 def explode(src: Path, html: str, out: Path) -> None:
     folder = src.parent
     # the appended bundle: one <style> ending in the visibility marker, then
-    # one <script> holding the runtime (its own </script instances are
-    # escaped as <\/script, so the first real close tag ends it)
+    # any embedded theme blocks (<style data-theme>, added when the deck
+    # declares several themes), then one <script> holding the runtime (its
+    # own </script instances are escaped as <\/script, so the first real
+    # close tag ends it)
     m = re.search(
         r"<style>([\s\S]*?body\{visibility:visible\}[\s\S]*?)</style>\s*"
+        r"((?:<style data-theme=[\s\S]*?</style>\s*)*)"
         r"<script>([\s\S]*?)</script>\s*(?=</body>)", html)
     if not m:
         sys.exit("no inlined bundle found — is this a standalone (data-standalone) deck?")
     css = m.group(1).replace("body{visibility:visible}", "").strip() + "\n"
-    js = m.group(2).replace("<\\/script", "</script").strip() + "\n"
+    js = m.group(3).replace("<\\/script", "</script").strip() + "\n"
     (folder / "bundle.css").write_text(css, encoding="utf-8")
     (folder / "bundle.js").write_text(js, encoding="utf-8")
+    active = None
+    for tm in re.finditer(r'<style data-theme="([^"]+)"( media="not all")?>\n?([\s\S]*?)\n?</style>', m.group(2)):
+        name, disabled, theme_css = tm.group(1), tm.group(2), tm.group(3)
+        (folder / "themes").mkdir(exist_ok=True)
+        (folder / "themes" / f"{name}.css").write_text(theme_css.strip() + "\n", encoding="utf-8")
+        if not disabled:
+            active = name
     html = html[:m.start()] + '<script src="bundle.js"></script>\n' + html[m.end():]
     html = re.sub(r'\s*<style id="standalone-guard">[^<]*</style>', "", html)
-    html = html.replace("</head>", '<link rel="stylesheet" href="bundle.css">\n</head>', 1)
+    theme_link = f'<link rel="stylesheet" href="themes/{active}.css" id="theme">\n' if active else ""
+    html = html.replace("</head>", '<link rel="stylesheet" href="bundle.css">\n' + theme_link + "</head>", 1)
     html = re.sub(r'<html([^>]*?) data-standalone(="")?', r"<html\1", html, count=1)
     imgdir = folder / "images"
     count = [0]

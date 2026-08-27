@@ -78,7 +78,11 @@ options.declare({ name: "data-surface", derived: true });
 // at boot — a typo like data-veil="med" warns in the console instead of
 // failing silently — and appear in the edit-mode "Options" panel
 // automatically, next to the runtime's own Transition and Bare controls.
+// `when` (a selector matched against the slide, or a predicate taking it)
+// gates the row to slides where the option actually does something; an
+// optional `onchange(slide)` runs after the panel applies a change.
 options.declare({ name: "data-veil", label: "Veil", values: ["soft", "dense"],
+                  when: ".slide--section",
                   hint: "Scrim strength over the brand gradient." });
 
 // Undoable edits: push the current deck state BEFORE mutating, and your

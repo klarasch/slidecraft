@@ -656,9 +656,30 @@
 
   async function inlineAssets(root) {
     const css = [], js = [];
+    // the deck's declared themes travel with the single file so the recipient
+    // keeps the T key: each becomes its own <style data-theme> block, only the
+    // active one enabled. Falls back to baking in just the active theme when
+    // the list can't be resolved (missing files, no data-themes).
+    const themeBlocks = [];
+    let activeTheme = null;
     for (const link of [...root.querySelectorAll('link[rel="stylesheet"]')]) {
       const href = link.getAttribute("href");
       if (!isRelSrc(href)) continue;
+      if (link.id === "theme") {
+        activeTheme = href.match(/([^/]+)\.css$/)?.[1] ?? null;
+        const names = [...new Set((root.querySelector("body").dataset.themes || "").trim().split(/\s+/).filter(Boolean))];
+        for (const name of names.length ? names : [activeTheme].filter(Boolean)) {
+          try {
+            themeBlocks.push({ name, css: await inlineCSSUrls(await fetchAsset(`themes/${name}.css`, minifyCSS), `themes/${name}.css`) });
+          } catch { /* theme file missing — leave it out */ }
+        }
+        // the active theme must be present even if data-themes forgot it
+        if (activeTheme && !themeBlocks.some(t => t.name === activeTheme)) {
+          try { themeBlocks.push({ name: activeTheme, css: await inlineCSSUrls(await fetchAsset(href, minifyCSS), href) }); } catch {}
+        }
+        link.remove();
+        continue;
+      }
       css.push(await inlineCSSUrls(await fetchAsset(href, minifyCSS), href));
       link.remove();
     }
@@ -678,7 +699,7 @@
     }
     const body = root.querySelector("body");
     if (isRelSrc(body.dataset.logo)) body.dataset.logo = await relToDataURL(body.dataset.logo);
-    body.removeAttribute("data-themes");   // the theme is baked in — a single file can't reskin
+    if (themeBlocks.length < 2) body.removeAttribute("data-themes");   // one theme baked in — nothing to cycle
     if (css.length && !root.querySelector("#standalone-guard")) {
       const g = document.createElement("style");
       g.id = "standalone-guard";
@@ -688,6 +709,15 @@
     if (css.length) {
       const st = document.createElement("style");
       st.textContent = css.join("\n") + "\nbody{visibility:visible}";
+      body.append(st);
+    }
+    // theme blocks come after the main bundle so they keep overriding runtime.css;
+    // cycleTheme flips `media` between "" and "not all" to swap them
+    for (const t of themeBlocks) {
+      const st = document.createElement("style");
+      st.dataset.theme = t.name;
+      if (t.name !== activeTheme) st.media = "not all";
+      st.textContent = t.css;
       body.append(st);
     }
     if (js.length) {
@@ -735,8 +765,10 @@
     { name: "data-bare", label: "Bare", type: "flag", hint: "Hide the footer — logo, label, page number." },
     { name: "data-reveal-all", label: "Reveal at once", type: "flag",
       hint: "Show progressive-reveal content immediately instead of step by step.",
+      when: s => !!s.querySelector("[data-reveal]"),
       onchange: s => { markRevealSteps(); step = getSteps(s).length ? step : 0; applyReveal(s); } },
     { name: "data-list", label: "List style", values: ["numbers", "dots"],
+      when: ".slide--bullets",
       hint: "Marker style for the list layout. Default is the layout's own (numbered)." },
   ].forEach(declareOption);
 
@@ -1288,8 +1320,21 @@
   // the deck declares its own theme list: <body data-themes="midnight paper mint">
   const THEMES = (document.body.dataset.themes || "").trim().split(/\s+/).filter(Boolean);
   function cycleTheme() {
+    // standalone decks carry their themes as embedded <style data-theme>
+    // blocks — cycle by flipping which one's `media` matches
+    const embedded = $$("style[data-theme]");
+    if (embedded.length > 1) {
+      const names = embedded.map(s => s.dataset.theme);
+      const cur = embedded.find(s => s.media !== "not all")?.dataset.theme;
+      const nextTheme = names[(names.indexOf(cur) + 1) % names.length];
+      embedded.forEach(s => s.media = s.dataset.theme === nextTheme ? "" : "not all");
+      readDeckPad(); fit();
+      toast(`Theme: ${nextTheme}`);
+      if (overviewOpen) buildOverview();
+      return;
+    }
     const link = $("#theme");
-    if (!link) return;
+    if (!link) return toast("This deck has one theme.");
     if (THEMES.length < 2) return toast("This deck has one theme.");
     const cur = link.getAttribute("href").match(/([^/]+)\.css$/)?.[1];
     const nextTheme = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
@@ -1343,7 +1388,10 @@
       // one row per declared slide option that can be picked from a list —
       // enum options as a segmented control (plus Default = attribute unset),
       // flags as Off/On. Brand extensions land here automatically.
-      const editable = [...OPTIONS.values()].filter(o => o.on === "slide" && !o.derived && (o.values || o.type === "flag"));
+      // an option's `when` (selector string or predicate) gates it to slides
+      // where it actually does something — irrelevant rows never render
+      const relevant = o => !o.when || (typeof o.when === "function" ? !!o.when(cur) : cur.matches(o.when));
+      const editable = [...OPTIONS.values()].filter(o => o.on === "slide" && !o.derived && (o.values || o.type === "flag") && relevant(o));
       const row = o => {
         const curV = cur.getAttribute(o.name);
         const seg = o.type === "flag"

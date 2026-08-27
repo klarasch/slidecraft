@@ -44,7 +44,10 @@ browser inlining needs http(s) — file:// decks can't fetch siblings, the butto
 `window.slidecraft = { serialize, options, transient, snapshot, toast }` is exposed for
 tooling and brand extensions (CUSTOMIZING.md layer 3). `options.declare` registers per-slide
 data-* options — derived ones are stripped on save, authored ones with `values` get boot
-validation plus a control in the edit-mode Options panel. Saves emit `slidecraft:serialize`
+validation plus a control in the edit-mode Options panel; a `when` selector/predicate keeps
+each row on the slides it's relevant to, `onchange` runs side effects. Multi-theme decks
+export their whole theme list into single files as `<style data-theme>` blocks (T keeps
+working; `--explode` restores `themes/*.css`). Saves emit `slidecraft:serialize`
 on `.deck`, and both single-file exporters inline relative `url()` refs inside linked
 stylesheets. Transitions move slide content, never the slide box (translucent-slide themes), and only the
 leaving slide fades — on top of the already-opaque entering one, so identical backgrounds

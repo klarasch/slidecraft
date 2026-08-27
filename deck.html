@@ -17,7 +17,7 @@
 
   <!-- 01 · title ------------------------------------------------------- -->
   <section class="slide slide--title" data-bare data-title="Cover">
-    <p class="eyebrow">Internal tooling · 2026</p>
+    <p class="eyebrow">Internal tooling <b>2026</b></p>
     <h1 class="display">Decks that stay <span class="accent">editable</span> after Claude writes them.</h1>
     <div class="meta">
       <span>Slidecraft</span>
@@ -70,7 +70,7 @@
   <!-- 04b · compare ---------------------------------------------------- -->
   <section class="slide slide--compare" data-title="Compare: before and after">
     <div class="stack stack--sm">
-      <p class="eyebrow">01 · The fix</p>
+      <p class="eyebrow"><b>01</b> The fix</p>
       <h2 class="h1">Same deck, one difference.</h2>
     </div>
     <div class="compare">
@@ -97,7 +97,7 @@
   <section class="slide slide--split" data-title="One runtime, many decks">
     <figure class="media split__media"><img src="images/mesh-warm.svg" alt=""></figure>
     <div class="split__body">
-      <p class="eyebrow">02 · Architecture</p>
+      <p class="eyebrow"><b>02</b> Architecture</p>
       <h2 class="h1">One runtime.<br>Many decks.</h2>
       <p class="body">The navigation, overview, edit mode and export live in a fixed <code>runtime.js</code> that ships with the skill. Claude never rewrites it.</p>
       <p class="body">Every generated deck is therefore just semantic markup plus a theme file — small to produce, cheap to revise, identical in behaviour.</p>
@@ -108,7 +108,7 @@
   <!-- 06 · cards ------------------------------------------------------- -->
   <section class="slide slide--cards" data-title="Three moving parts">
     <div class="stack stack--sm">
-      <p class="eyebrow">03 · Layouts</p>
+      <p class="eyebrow"><b>03</b> Layouts</p>
       <h2 class="h1">Claude picks a layout. It doesn't invent one.</h2>
     </div>
     <div class="cards" data-reveal>
@@ -133,7 +133,7 @@
   <!-- 06b · bento ------------------------------------------------------ -->
   <section class="slide slide--bento" data-title="Bento">
     <div class="stack stack--sm">
-      <p class="eyebrow">03 · Layouts</p>
+      <p class="eyebrow"><b>03</b> Layouts</p>
       <h2 class="h1">One slide, five tiles.</h2>
     </div>
     <div class="bento" data-reveal>
@@ -163,7 +163,7 @@
   <!-- 07 · stats ------------------------------------------------------- -->
   <section class="slide slide--stats" data-title="Why it's cheap">
     <div class="stack stack--sm">
-      <p class="eyebrow">04 · Economics</p>
+      <p class="eyebrow"><b>04</b> Economics</p>
       <h2 class="h1">Cheap because the hard part is a static file.</h2>
     </div>
     <div class="stats">
@@ -184,7 +184,7 @@
 
   <!-- 07b · big number ------------------------------------------------- -->
   <section class="slide slide--number" data-title="Big number" data-transition="zoom">
-    <p class="eyebrow">04 · Economics</p>
+    <p class="eyebrow"><b>04</b> Economics</p>
     <p class="stat__num" data-animate="count">~3,000</p>
     <p class="lead">tokens to hand a finished deck back to Claude for a revision pass.</p>
     <aside class="notes">
@@ -202,7 +202,7 @@
   <!-- 09 · bullets ----------------------------------------------------- -->
   <section class="slide slide--bullets" data-title="Edit mode">
     <div class="stack stack--sm">
-      <p class="eyebrow">05 · Try it now — press E</p>
+      <p class="eyebrow"><b>05</b> Try it now — press E</p>
       <h2 class="h1">What edit mode gives you</h2>
     </div>
     <ul data-reveal>
@@ -220,7 +220,7 @@
   <section class="slide slide--split is-flipped" data-title="Saving without base64">
     <figure class="media split__media"><img src="images/topo.svg" alt=""></figure>
     <div class="split__body">
-      <p class="eyebrow">06 · Persistence</p>
+      <p class="eyebrow"><b>06</b> Persistence</p>
       <h2 class="h1">Saving without base64.</h2>
       <p class="body">A browser file picker can't hand you a real path, so the usual answer is inlining every image as base64 — a 2&nbsp;MB photo becomes 2.7&nbsp;MB of text.</p>
       <p class="body">Instead the runtime asks for the deck's folder once via the File System Access API, writes new images into <code>images/</code>, and keeps the markup pointing at relative paths.</p>
@@ -239,7 +239,7 @@
     &lt;img src="images/roadmap.png" alt=""&gt;
   &lt;/figure&gt;
   &lt;div class="split__body"&gt;
-    &lt;p class="eyebrow"&gt;Q3 · Roadmap&lt;/p&gt;
+    &lt;p class="eyebrow"&gt;&lt;b&gt;Q3&lt;/b&gt; Roadmap&lt;/p&gt;
     &lt;h2 class="h1"&gt;Ship the thing.&lt;/h2&gt;
     &lt;p class="body"&gt;Then ship it again, smaller.&lt;/p&gt;
   &lt;/div&gt;
@@ -250,7 +250,7 @@
   <section class="slide slide--full" data-title="Full bleed">
     <figure class="media bleed" data-kenburns><img src="images/mesh-cool.svg" alt=""></figure>
     <div class="overlay">
-      <p class="eyebrow">07 · Export</p>
+      <p class="eyebrow"><b>07</b> Export</p>
       <h2 class="h1">Print to PDF, and the pixels survive.</h2>
       <p class="lead">Chrome → Print → margins <b>None</b>, background graphics <b>on</b>. One slide per landscape page, fonts and gradients intact.</p>
     </div>
@@ -259,7 +259,7 @@
   <!-- 12b · gallery ---------------------------------------------------- -->
   <section class="slide slide--gallery" data-title="Gallery">
     <div class="stack stack--sm">
-      <p class="eyebrow">07 · Images</p>
+      <p class="eyebrow"><b>07</b> Images</p>
       <h2 class="h1">Three pictures, one slide.</h2>
     </div>
     <div class="gallery">
@@ -284,7 +284,7 @@
       <i class="pin" style="left:38%;top:74%"></i>
     </figure>
     <div class="callout__body">
-      <p class="eyebrow">07 · For design reviews</p>
+      <p class="eyebrow"><b>07</b> For design reviews</p>
       <h2 class="h2">Point at the pixels.</h2>
       <ol class="callout__notes" data-reveal>
         <li>Numbered pins sit on the image itself.</li>
@@ -322,7 +322,7 @@
   <!-- 14 · bullets: v1 scope ------------------------------------------- -->
   <section class="slide slide--bullets" data-title="v1 scope">
     <div class="stack stack--sm">
-      <p class="eyebrow">08 · Scope</p>
+      <p class="eyebrow"><b>08</b> Scope</p>
       <h2 class="h1">What ships in v1</h2>
     </div>
     <ul>
@@ -336,7 +336,7 @@
   <!-- 14b · timeline --------------------------------------------------- -->
   <section class="slide slide--timeline" data-title="Timeline">
     <div class="stack stack--sm">
-      <p class="eyebrow">08 · Roadmap</p>
+      <p class="eyebrow"><b>08</b> Roadmap</p>
       <h2 class="h1">Where this goes next</h2>
     </div>
     <div class="timeline" data-reveal>

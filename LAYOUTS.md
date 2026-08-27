@@ -12,7 +12,7 @@ Add `data-bare` to hide the footer (use on title, section dividers, end card).
 
 | class | use | approx size |
 |---|---|---|
-| `.eyebrow` | small uppercase mono kicker, accent-coloured | 13px |
+| `.eyebrow` | small uppercase mono kicker, neutral — wrap a number/tag in `<b>` for an accent-coloured division: `<b>03</b> Layouts`. Never join eyebrow parts with `·` | 13px |
 | `.display` | hero headline | 86–108px |
 | `.h1` | slide headline | 62px |
 | `.h2` | sub-headline | 40px |

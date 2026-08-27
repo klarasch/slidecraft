@@ -238,9 +238,14 @@ body:not(.is-editing):not(.is-overview) .slide.is-active figure[data-kenburns] i
   font: 600 13px/1 var(--font-mono);
   letter-spacing: .16em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--muted);
   margin: 0;
 }
+/* the divided form: wrap the number/tag in <b> — it takes the accent while the
+   text stays neutral. No middle-dot separators; the color shift is the division. */
+.eyebrow b { color: var(--accent); font-weight: inherit; margin-inline-end: .45em; }
+.eyebrow b:last-child { margin-inline-end: 0; margin-inline-start: .45em; }
+.eyebrow b:only-child { margin-inline: 0; }
 .display {
   font-family: var(--font-display);
   font-size: 92px;
@@ -420,6 +425,7 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
   color: var(--section-fg, var(--accent-fg));
 }
 .slide--section .eyebrow { color: color-mix(in oklab, var(--section-fg, var(--accent-fg)) 70%, transparent); }
+.slide--section .eyebrow b { color: inherit; }   /* accent-on-accent would vanish */
 .slide--section .display { font-size: 108px; }
 .slide--section .slide__wash { opacity: .25; }
 .slide--section .index {
