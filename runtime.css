@@ -471,6 +471,13 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
   letter-spacing: .04em;
 }
 .slide--bullets ul { counter-reset: li; }
+/* data-list option (Slide options panel): swap the numbered markers for accent dots */
+.slide--bullets[data-list="dots"] li::before {
+  content: "";
+  width: 8px; height: 8px; border-radius: 999px;
+  background: var(--accent);
+  margin-top: 13px;
+}
 
 /* --- agenda (two column index) --- */
 .slide--agenda { gap: 38px; }

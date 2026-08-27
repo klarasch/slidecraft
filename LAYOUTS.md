@@ -247,6 +247,8 @@ All motion is attribute-driven. Never write CSS or keyframes.
 | `data-reveal` | any single element | that element becomes one step | bespoke |
 | `data-animate="count"` | `.stat__num` | counts up on entry; a non-numeric prefix/suffix (`$`, `%`, `×`, `+`) is preserved | polished, bespoke |
 | `data-kenburns` | `figure.media` | slow zoom while the slide is shown | bespoke |
+| `data-reveal-all` | `<section>` | that slide shows its `data-reveal` content all at once — the presenter's per-slide opt-out, also in the edit-mode Options panel | any |
+| `data-list="numbers\|dots"` | `<section class="slide slide--bullets">` | marker style for the list layout (default: numbered) — also in the Options panel | any |
 
 Content-tailored transitions (bespoke tier): stats and big numbers → `zoom`, section
 dividers → `wipe`, quotes → `fade`, full-bleed and full-screen images → `zoom` with

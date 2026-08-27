@@ -202,6 +202,7 @@
   function markRevealSteps() {
     slides.forEach(s => {
       $$("[data-step]", s).forEach(n => n.removeAttribute("data-step"));
+      if (s.hasAttribute("data-reveal-all")) return;   // per-slide option: no steps, show everything
       $$("[data-reveal]", s).forEach(host => {
         const isContainer = ["UL", "OL"].includes(host.tagName) || host.matches(".cards,.stats,.stack,.bento,.compare,.timeline,.gallery");
         (isContainer ? [...host.children] : [host]).forEach(el => el.dataset.step = "");
@@ -732,6 +733,11 @@
     { name: "data-note", label: "Change request", type: "text" },
     { name: "data-transition", label: "Transition", values: ["fade", "rise", "zoom", "push", "wipe", "none"], hint: "How this slide enters. Default follows the deck." },
     { name: "data-bare", label: "Bare", type: "flag", hint: "Hide the footer — logo, label, page number." },
+    { name: "data-reveal-all", label: "Reveal at once", type: "flag",
+      hint: "Show progressive-reveal content immediately instead of step by step.",
+      onchange: s => { markRevealSteps(); step = getSteps(s).length ? step : 0; applyReveal(s); } },
+    { name: "data-list", label: "List style", values: ["numbers", "dots"],
+      hint: "Marker style for the list layout. Default is the layout's own (numbered)." },
   ].forEach(declareOption);
 
   function validateOption(o) {
@@ -1106,10 +1112,10 @@
   }
 
   /* ---------------------------------------------------------------- chrome */
-  const ICONS = `<svg width="0" height="0" style="position:absolute" aria-hidden="true" data-runtime><symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol><symbol id="i-next" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol><symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol><symbol id="i-present" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol><symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9.5 14.5L12 17l2.5-2.5"/></symbol><symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13 7l3 3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-dup" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></symbol><symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol><symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7M12 17h.01"/></symbol><symbol id="i-notes" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></symbol><symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-8 8"/></symbol><symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></symbol></svg>`;
+  const ICONS = `<svg width="0" height="0" style="position:absolute" aria-hidden="true" data-runtime><symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol><symbol id="i-next" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol><symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol><symbol id="i-present" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol><symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6M9.5 14.5L12 17l2.5-2.5"/></symbol><symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13 7l3 3"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-dup" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol><symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></symbol><symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol><symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7M12 17h.01"/></symbol><symbol id="i-notes" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></symbol><symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-8 8"/></symbol><symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></symbol><symbol id="i-first" viewBox="0 0 24 24"><path d="M17 6l-6 6 6 6"/><path d="M11 6l-6 6 6 6"/></symbol></svg>`;
 
   const SHORTCUTS = [
-    ["→ / space", "Next"], ["←", "Previous"], ["Home", "First slide"], ["End", "Last slide"],
+    ["→ / space", "Next"], ["←", "Previous"], ["R / Home", "Restart from slide 1"], ["End", "Last slide"],
     ["O", "Overview"], ["E", "Edit mode"], ["S", "Presenter view"], ["T", "Cycle theme"],
     ["P", "Export PDF"], ["D", "Download single file"], ["F", "Fullscreen"], ["?", "This sheet"], ["Esc", "Close / finish editing"],
     ["⌘Z", "Undo"], ["⌘⇧Z", "Redo"], ["⌘D", "Duplicate slide"], ["⌫", "Delete selected sticker"],
@@ -1168,12 +1174,17 @@
     if (!bar) return;
     const showTheme = (document.body.dataset.themes || "").trim().split(/\s+/).filter(Boolean).length >= 2;
 
+    // the slide counter doubles as the Overview button — clicking "3 / 23"
+    // is the natural place to ask for the grid of everything
+    const counter = `<button id="btn-ov" class="tb-btn tb-count js-count" data-key="O" data-tip="Overview — see every slide as a grid" aria-label="Overview">${index + 1} / ${slides.length}</button>`;
+    const restart = btn({ id: "btn-first", icon: "first", cls: "icon-only", key: "R", tip: "Restart from the first slide" });
+
     bar.innerHTML = !editing ? `
+      ${restart}
       ${btn({ id: "btn-prev", icon: "prev", cls: "icon-only", key: "←", tip: "Previous slide" })}
-      <span class="tb-count js-count">${index + 1} / ${slides.length}</span>
+      ${counter}
       ${btn({ id: "btn-next", icon: "next", cls: "icon-only", key: "→", tip: "Next slide" })}
       <span class="tb-sep"></span>
-      ${btn({ id: "btn-ov", icon: "grid", label: "Overview", key: "O", tip: "See every slide as a grid" })}
       ${showTheme ? btn({ id: "btn-theme", icon: "theme", label: "Theme", key: "T", tip: "Switch light/dark theme" }) : ""}
       ${btn({ id: "btn-presenter", icon: "present", label: "Presenter", key: "S", tip: "Open presenter view with speaker notes" })}
       ${btn({ id: "btn-print", icon: "pdf", label: "Export PDF", key: "P", tip: "Print or save the deck as a PDF" })}
@@ -1182,8 +1193,9 @@
       ${btn({ id: "btn-edit", icon: "edit", label: "Edit", key: "E", tip: "Switch to edit mode" })}
       ${btn({ id: "btn-help", icon: "help", cls: "icon-only", key: "?", tip: "Keyboard shortcuts" })}
     ` : `
+      ${restart}
       ${btn({ id: "btn-prev", icon: "prev", cls: "icon-only", key: "←", tip: "Previous slide" })}
-      <span class="tb-count js-count">${index + 1} / ${slides.length}</span>
+      ${counter}
       ${btn({ id: "btn-next", icon: "next", cls: "icon-only", key: "→", tip: "Next slide" })}
       <span class="tb-sep"></span>
       ${btn({ id: "btn-add", icon: "plus", label: "Add slide", tip: "Insert a new slide after this one" })}
@@ -1200,10 +1212,11 @@
       ${btn({ id: "btn-done", icon: "check", label: "Done", cls: "primary", tip: "Exit edit mode" })}
     `;
 
+    $("#btn-first").onclick = () => show(0, true, "fwd");
     $("#btn-prev").onclick = prev;
     $("#btn-next").onclick = next;
+    $("#btn-ov").onclick = () => toggleOverview();
     if (!editing) {
-      $("#btn-ov").onclick = () => toggleOverview();
       $("#btn-theme")?.addEventListener("click", cycleTheme);
       $("#btn-presenter").onclick = openPresenter;
       $("#btn-print").onclick = e => exportPDF(e.currentTarget);
@@ -1358,6 +1371,7 @@
         if (s.getAttribute(name) === next) return;   // no-op click: don't snapshot/autosave
         snapshot();
         if (next === null) s.removeAttribute(name); else s.setAttribute(name, next);
+        def.onchange?.(s);                         // option-specific side effects (e.g. re-marking reveal steps)
         renderPopover("options", anchor);          // re-render with the new state
       });
     }
@@ -1753,7 +1767,7 @@
       switch (e.key.toLowerCase()) {
         case "arrowright": case " ": case "pagedown": e.preventDefault(); advance(); break;
         case "arrowleft": case "pageup": e.preventDefault(); retreat(); break;
-        case "home": show(0, true, "fwd"); break;
+        case "home": case "r": show(0, true, "fwd"); break;
         case "end": show(slides.length - 1, true, "fwd"); break;
         case "o": toggleOverview(); break;
         case "e": toggleEdit(); break;
