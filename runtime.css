@@ -238,12 +238,12 @@ body:not(.is-editing):not(.is-overview) .slide.is-active figure[data-kenburns] i
   font: 600 13px/1 var(--font-mono);
   letter-spacing: .16em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--accent);
   margin: 0;
 }
-/* the divided form: wrap the number/tag in <b> — it takes the accent while the
-   text stays neutral. No middle-dot separators; the color shift is the division. */
-.eyebrow b { color: var(--accent); font-weight: inherit; margin-inline-end: .45em; }
+/* the divided form: wrap the number/tag in <b> — it goes neutral while the
+   text keeps the accent. No middle-dot separators; the color shift is the division. */
+.eyebrow b { color: var(--muted); font-weight: inherit; margin-inline-end: .45em; }
 .eyebrow b:last-child { margin-inline-end: 0; margin-inline-start: .45em; }
 .eyebrow b:only-child { margin-inline: 0; }
 .display {
