@@ -476,6 +476,37 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
 [data-sep="colon"]   { --sep: ":"; }
 [data-sep="none"] .meta__sep { display: none; }   /* the runtime also skips generating them */
 
+/* Marker style for every list layout — the bullets list and the compare
+   columns read the same tokens, so one data-list on <body> harmonises them.
+   Left unset, each layout keeps its own default (numbers / dash). Values go on
+   <body> deck-wide, on a slide, or come from data-list-text / data-list-icon. */
+[data-list="numbers"] {
+  --marker: counter(li, decimal-leading-zero);
+  --marker-w: auto; --marker-h: auto; --marker-bg: none; --marker-top: 0;
+}
+[data-list="dots"] {
+  --marker: ""; --marker-w: 8px; --marker-h: 8px;
+  --marker-radius: 999px; --marker-bg: var(--accent);
+  --marker-shift: 13px; --marker-top: .5em;
+}
+[data-list="square"] {
+  --marker: ""; --marker-w: 8px; --marker-h: 8px;
+  --marker-radius: 2px; --marker-bg: var(--accent);
+  --marker-shift: 13px; --marker-top: .5em;
+}
+[data-list="dash"] {
+  --marker: ""; --marker-w: 14px; --marker-h: 2px;
+  --marker-bg: var(--accent);
+  --marker-shift: 15px; --marker-top: .62em;
+}
+[data-list="chevron"] {
+  --marker: "\203A";                        /* › */
+  --marker-w: auto; --marker-h: auto; --marker-bg: none; --marker-top: 0;
+}
+[data-list="none"] {
+  --marker: ""; --marker-w: 0; --marker-h: 0; --marker-bg: none;
+}
+
 /* --- section divider --- */
 .slide--section {
   justify-content: center;
@@ -529,20 +560,17 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
 }
 .slide--bullets li:last-child { border-bottom: 0; padding-bottom: 0; }
 .slide--bullets li::before {
-  content: counter(li, decimal-leading-zero);
+  content: var(--marker, counter(li, decimal-leading-zero));
   counter-increment: li;
+  width: var(--marker-w, auto); height: var(--marker-h, auto);
+  background: var(--marker-bg, none);
+  border-radius: var(--marker-radius, 0);
+  margin-top: var(--marker-shift, 0);
   font: 600 14px/1.9 var(--font-mono);
   color: var(--accent);
   letter-spacing: .04em;
 }
 .slide--bullets ul { counter-reset: li; }
-/* data-list option (Slide options panel): swap the numbered markers for accent dots */
-.slide--bullets[data-list="dots"] li::before {
-  content: "";
-  width: 8px; height: 8px; border-radius: 999px;
-  background: var(--accent);
-  margin-top: 13px;
-}
 
 /* --- agenda (two column index) --- */
 .slide--agenda { gap: 38px; }
@@ -764,10 +792,23 @@ body.is-editing .pin.is-sel { outline: 2px solid #fff; outline-offset: 2px; }
   position: relative; padding-left: 24px;
   font-size: 19px; line-height: 1.5; color: var(--muted);
 }
+.slide--compare .col ul { counter-reset: li; }
 .slide--compare .col li::before {
-  content: ""; position: absolute; left: 0; top: .62em;
-  width: 12px; height: 2px; background: var(--accent);
+  content: var(--marker, "");
+  counter-increment: li;
+  position: absolute; left: 0; top: var(--marker-top, .62em);
+  width: var(--marker-w, 12px); height: var(--marker-h, 2px);
+  background: var(--marker-bg, var(--accent));
+  border-radius: var(--marker-radius, 0);
+  font: 600 12px/1 var(--font-mono);
+  color: var(--accent);
+  letter-spacing: .04em;
 }
+.slide--compare .col li > .glyph {
+  position: absolute; left: 0; top: .25em;
+  width: 15px; height: 15px; margin: 0;
+}
+.slide--compare .col li:has(> .glyph)::before { content: none; }
 
 /* --- timeline: horizontal steps on a hairline --- */
 .slide--timeline { gap: 56px; }

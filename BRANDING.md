@@ -71,6 +71,18 @@ divider sets it once here:
 A deck can also override it per deck or per slide with `data-sep` / `data-sep-text`, or hand
 the job to a sprite icon with `data-sep-icon` (LAYOUTS.md).
 
+List markers work the same way. The `bullets` layout and the `compare` columns read one
+recipe, so a brand that wants square markers everywhere sets it once — either as the deck
+default (`<body data-list="square">`) or, for a shape the named values don't cover, as tokens:
+
+```css
+--marker:        "";        /* content — a glyph string, or "" for a drawn shape */
+--marker-w:      8px;       /* shape width  (auto for a glyph) */
+--marker-h:      8px;       /* shape height (auto for a glyph) */
+--marker-radius: 2px;
+--marker-bg:     var(--accent);
+```
+
 Code slides highlight themselves from the accents above, so a brand normally needs nothing
 here. Override a single token only when the derived colour misses:
 

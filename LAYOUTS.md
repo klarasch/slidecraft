@@ -269,7 +269,9 @@ All motion is attribute-driven. Never write CSS or keyframes.
 | `data-animate="count"` | `.stat__num` | counts up on entry; a non-numeric prefix/suffix (`$`, `%`, `×`, `+`) is preserved | polished, bespoke |
 | `data-kenburns` | `figure.media` | slow zoom while the slide is shown | bespoke |
 | `data-reveal-all` | `<section>` | that slide shows its `data-reveal` content all at once — the presenter's per-slide opt-out, also in the edit-mode Options panel | any |
-| `data-list="numbers\|dots"` | `<section class="slide slide--bullets">` | marker style for the list layout (default: numbered) — also in the Options panel | any |
+| `data-list="numbers\|dots\|square\|dash\|chevron\|none"` | `<body>` (deck-wide) or one `<section>` | marker style for every list — the `bullets` layout and the `compare` columns read the same token, so setting it on `<body>` makes them match. Unset, each keeps its own default (numbers in `bullets`, a dash in `compare`). Also in the Options panel | any |
+| `data-list-text="◆"` | `<body>` or one `<section>` | any glyph as the list marker | any |
+| `data-list-icon="check"` | `<body>` or one `<section>` | a sprite icon as the list marker — the id without its `i-` prefix, and the symbol has to be in the deck's sprite. A glyph authored on a single `<li>` still wins for that item | polished, bespoke |
 | `data-sep="dash\|en-dash\|slash\|pipe\|colon\|none"` | `<body>` (deck-wide) or one `<section>` | separator drawn between `.meta` items (default: em dash) — also in the Options panel | any |
 | `data-sep-text="✦"` | `<body>` or one `<section>` | any string as the separator instead of a named one | any |
 | `data-sep-icon="spark"` | `<body>` or one `<section>` | a sprite icon as the separator — the id without its `i-` prefix | polished, bespoke |

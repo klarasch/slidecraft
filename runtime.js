@@ -124,6 +124,7 @@
       if (s.classList.contains("slide--placeholder")) ensurePlaceholderNote(s);
       if (s.classList.contains("slide--code")) $$("pre", s).forEach(highlight);
       $$(".meta", s).forEach(ensureSeparators);
+      ensureListMarkers(s);
     });
     markRevealSteps();
   }
@@ -154,6 +155,34 @@
       sep.setAttribute("aria-hidden", "true");
       if (icon) sep.innerHTML = `<svg class="glyph"><use href="#i-${escapeHtml(icon)}"/></svg>`;
       sp.before(sep);
+    });
+  }
+
+  /* ----------------------------------------------------------- list markers */
+  // Markers are a token, not a layout decision: the bullets list and the
+  // compare columns read the same --marker recipe, so one data-list harmonises
+  // them (each keeps its own default when nothing is set). data-list-text
+  // supplies any glyph, data-list-icon a sprite icon — both on <body> for the
+  // whole deck or on a single slide, like data-list itself.
+  const LIST_SELECTOR = ".slide--bullets li, .slide--compare .col li";
+  function ensureListMarkers(s) {
+    const items = $$(LIST_SELECTOR, s);
+    if (!items.length) return;
+    const text = s.closest("[data-list-text]")?.dataset.listText;   // closest() reaches <body>
+    if (text) {
+      s.style.setProperty("--marker", JSON.stringify(text));
+      s.style.setProperty("--marker-w", "auto");
+      s.style.setProperty("--marker-h", "auto");
+      s.style.setProperty("--marker-bg", "none");
+    } else {
+      ["--marker", "--marker-w", "--marker-h", "--marker-bg"].forEach(v => s.style.removeProperty(v));
+    }
+    const icon = s.closest("[data-list-icon]")?.dataset.listIcon;
+    items.forEach(li => {
+      $$(":scope > .glyph[data-gen]", li).forEach(g => g.remove());
+      if (!icon || $(":scope > .glyph", li)) return;              // an authored glyph wins
+      li.insertAdjacentHTML("afterbegin",
+        `<svg class="glyph" data-gen><use href="#i-${escapeHtml(icon)}"/></svg>`);
     });
   }
 
@@ -1026,9 +1055,10 @@
       when: s => !!s.querySelector(".meta"),
       hint: "Divider drawn between meta items. Deck-wide default lives on <body>.",
       onchange: s => $$(".meta", s).forEach(ensureSeparators) },
-    { name: "data-list", label: "List style", values: ["numbers", "dots"],
-      when: ".slide--bullets",
-      hint: "Marker style for the list layout. Default is the layout's own (numbered)." },
+    { name: "data-list", label: "List style", values: ["numbers", "dots", "square", "dash", "chevron", "none"],
+      when: s => !!s.querySelector(LIST_SELECTOR),
+      hint: "Marker style for this slide's lists. Default is the layout's own — numbers for the list layout, a dash in compare columns.",
+      onchange: ensureListMarkers },
     { name: "data-crop", on: "media", label: "Crop", values: ["cover", "contain"],
       hint: "How an image fills its slot — cover crops to fill, contain letterboxes. Toggled from the image's hover chip." },
     { name: "data-clean", label: "Blank canvas", type: "flag",
@@ -1079,6 +1109,14 @@
     });
     root.querySelectorAll(".sticker, .pin").forEach(n => n.classList.remove("is-sel"));
     root.querySelectorAll("[data-grain]").forEach(n => n.removeAttribute("data-grain"));   // re-derived at boot
+    // --sep / --marker are painted onto the element from data-sep-text and
+    // data-list-text at boot; the attributes are the source of truth, so the
+    // resolved values never belong in the file
+    root.querySelectorAll("[style*='--sep'], [style*='--marker']").forEach(n => {
+      ["--sep", "--marker", "--marker-w", "--marker-h", "--marker-bg"]
+        .forEach(v => n.style.removeProperty(v));
+      if (!n.getAttribute("style")?.trim()) n.removeAttribute("style");
+    });
     root.querySelectorAll("pre[data-hl]").forEach(p => {                                   // ditto: tokens are a view
       p.textContent = p.textContent;
       p.removeAttribute("data-hl"); p.removeAttribute("data-hl-src");
