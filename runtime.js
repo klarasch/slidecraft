@@ -123,8 +123,38 @@
       $$(".sticker", s).forEach(ensureStickerHandles);
       if (s.classList.contains("slide--placeholder")) ensurePlaceholderNote(s);
       if (s.classList.contains("slide--code")) $$("pre", s).forEach(highlight);
+      $$(".meta", s).forEach(ensureSeparators);
     });
     markRevealSteps();
+  }
+
+  /* ------------------------------------------------------- meta separators */
+  // Separators between meta items are RENDERED, never authored: a model that
+  // types its own divider reaches for "·" every time, and a deck whose cover
+  // reads "Name · Date" announces where it came from. So the markup is bare
+  // spans, and the runtime puts a separator between them — an em dash by
+  // default, a theme's --sep glyph, a custom string, or a sprite icon.
+  const LEGACY_SEP = /^[·•‧∙‒–—―|\/\\*+~-]$/;   // authored dividers, swept up on load
+  function ensureSeparators(m) {
+    $$(".meta__sep", m).forEach(n => n.remove());
+    $$(":scope > span", m).forEach(sp => {
+      if (LEGACY_SEP.test(sp.textContent.trim())) sp.remove();
+    });
+    const custom = m.closest("[data-sep-text]");
+    if (custom) m.style.setProperty("--sep", JSON.stringify(custom.dataset.sepText));
+    else m.style.removeProperty("--sep");
+    const mode = m.closest("[data-sep]")?.dataset.sep;
+    if (mode === "none") return;
+    const icon = m.closest("[data-sep-icon]")?.dataset.sepIcon;
+    const items = $$(":scope > span", m);
+    items.slice(1).forEach(sp => {
+      const sep = document.createElement("i");
+      sep.className = "meta__sep";
+      sep.dataset.gen = "";
+      sep.setAttribute("aria-hidden", "true");
+      if (icon) sep.innerHTML = `<svg class="glyph"><use href="#i-${escapeHtml(icon)}"/></svg>`;
+      sp.before(sep);
+    });
   }
 
   function ensurePlaceholderNote(s) {
@@ -992,6 +1022,10 @@
       hint: "Show progressive-reveal content immediately instead of step by step.",
       when: s => !!s.querySelector("[data-reveal]"),
       onchange: s => { markRevealSteps(); step = getSteps(s).length ? step : 0; applyReveal(s); } },
+    { name: "data-sep", label: "Separator", values: ["dash", "en-dash", "slash", "pipe", "colon", "none"],
+      when: s => !!s.querySelector(".meta"),
+      hint: "Divider drawn between meta items. Deck-wide default lives on <body>.",
+      onchange: s => $$(".meta", s).forEach(ensureSeparators) },
     { name: "data-list", label: "List style", values: ["numbers", "dots"],
       when: ".slide--bullets",
       hint: "Marker style for the list layout. Default is the layout's own (numbered)." },
@@ -1227,7 +1261,7 @@
 
   /* ------------------------------------------------------------ slide ops */
   const LAYOUTS = [
-    { key: "title", label: "Title", html: () => `<section class="slide slide--title" data-bare data-title="Title"><p class="eyebrow">Kicker</p><h1 class="display">Headline goes here</h1><div class="meta"><span>Author</span><span>·</span><span>Date</span></div></section>` },
+    { key: "title", label: "Title", html: () => `<section class="slide slide--title" data-bare data-title="Title"><p class="eyebrow">Kicker</p><h1 class="display">Headline goes here</h1><div class="meta"><span>Author</span><span>Date</span></div></section>` },
     { key: "section", label: "Section", html: () => `<section class="slide slide--section" data-bare data-title="Section"><p class="index">01</p><p class="eyebrow">Section</p><h2 class="display">Name</h2></section>` },
     { key: "statement", label: "Statement", html: () => `<section class="slide slide--statement" data-title="Statement"><p class="eyebrow">Kicker</p><h2 class="display">Headline goes here</h2><p class="lead">One sentence of support.</p></section>` },
     { key: "quote", label: "Quote", html: () => `<section class="slide slide--quote" data-title="Quote"><blockquote class="serif">Quotation goes here.</blockquote><figcaption><span class="caption">Attribution</span></figcaption></section>` },

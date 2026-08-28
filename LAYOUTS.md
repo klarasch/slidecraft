@@ -6,13 +6,19 @@ using the classes below. Never write CSS or JS — `runtime.css` and `runtime.js
 Canvas is 1280×720. Every slide is `<section class="slide slide--TYPE" data-title="short label">`.
 Add `data-bare` to hide the footer (use on title, section dividers, end card).
 
+**Never type a separator character.** No `·`, `•`, `|`, `—` or `/` joining two phrases —
+in a `.meta` line, an `.eyebrow`, a `.chip`, a caption, anywhere. A hand-typed middle dot is
+the single loudest tell that a deck was generated. `.meta` takes bare `<span>`s and the
+runtime draws the divider between them (em dash by default, see `data-sep`); everywhere else,
+write two sentences, use a `<b>` tag for a division, or let the whitespace do the work.
+
 ---
 
 ## Text primitives (usable inside any layout)
 
 | class | use | approx size |
 |---|---|---|
-| `.eyebrow` | small uppercase mono kicker, accent-coloured — wrap a number/tag in `<b>` for a neutral division: `<b>03</b> Layouts`. Never join eyebrow parts with `·` | 13px |
+| `.eyebrow` | small uppercase mono kicker, accent-coloured — wrap a number/tag in `<b>` for a neutral division: `<b>03</b> Layouts`. Never join eyebrow parts with a separator character | 13px |
 | `.display` | hero headline | 86–108px |
 | `.h1` | slide headline | 62px |
 | `.h2` | sub-headline | 40px |
@@ -66,7 +72,7 @@ change type sizes, only what you write.
 <section class="slide slide--title" data-bare data-title="Cover">
   <p class="eyebrow">Kicker</p>
   <h1 class="display">Headline with an <span class="accent">accent</span>.</h1>
-  <div class="meta"><span>Author</span><span>·</span><span>Date</span></div>
+  <div class="meta"><span>Author</span><span>Date</span></div>
 </section>
 ```
 
@@ -264,6 +270,9 @@ All motion is attribute-driven. Never write CSS or keyframes.
 | `data-kenburns` | `figure.media` | slow zoom while the slide is shown | bespoke |
 | `data-reveal-all` | `<section>` | that slide shows its `data-reveal` content all at once — the presenter's per-slide opt-out, also in the edit-mode Options panel | any |
 | `data-list="numbers\|dots"` | `<section class="slide slide--bullets">` | marker style for the list layout (default: numbered) — also in the Options panel | any |
+| `data-sep="dash\|en-dash\|slash\|pipe\|colon\|none"` | `<body>` (deck-wide) or one `<section>` | separator drawn between `.meta` items (default: em dash) — also in the Options panel | any |
+| `data-sep-text="✦"` | `<body>` or one `<section>` | any string as the separator instead of a named one | any |
+| `data-sep-icon="spark"` | `<body>` or one `<section>` | a sprite icon as the separator — the id without its `i-` prefix | polished, bespoke |
 | `data-crop="cover\|contain"` | `figure.media` | how the image fills its slot: cover crops, contain letterboxes (default: the layout's own — callout media letterbox, the rest cover). Toggled from the image's edit-mode hover chip | any |
 | `data-clean` | `<section class="slide slide--placeholder">` | hide the placeholder prompt and dashed frame — a blank canvas for stacking pasted images, which survive saves on a placeholder | any |
 

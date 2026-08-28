@@ -335,3 +335,7 @@ file. Read it before writing a theme.
 - Never regenerate a deck that carries `data-note` or hand edits. Edit in place.
 - Never ask more than one round of questions.
 - Never invent a layout class, a theme name, or an image path.
+- Never type a separator character to join two phrases — no `·`, `•`, `|`, `—` or `/` in a
+  `.meta` line, eyebrow, chip or caption. The middle dot in particular is the loudest tell
+  that a deck was machine-written. `.meta` holds bare `<span>`s; the runtime draws the
+  divider (`data-sep`, see `LAYOUTS.md`).

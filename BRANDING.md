@@ -60,6 +60,17 @@ leave them unset otherwise:
                  whose deck is meant to fill the window edge-to-edge, no card */
 ```
 
+One more optional token, for the divider the runtime draws between `.meta` items on the
+title card. It is an em dash by default and must never be a middle dot; a brand with its own
+divider sets it once here:
+
+```css
+--sep: "/";   /* any CSS content string — "\2014" is the default em dash */
+```
+
+A deck can also override it per deck or per slide with `data-sep` / `data-sep-text`, or hand
+the job to a sprite icon with `data-sep-icon` (LAYOUTS.md).
+
 Code slides highlight themselves from the accents above, so a brand normally needs nothing
 here. Override a single token only when the derived colour misses:
 
