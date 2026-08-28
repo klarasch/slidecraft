@@ -460,6 +460,7 @@
     editing = force ?? !editing;
     document.body.classList.toggle("is-editing", editing);
     renderToolbar();
+    if (editing) settleCounts();
     editing ? enableEditing() : disableEditing();
     if (editing) renderNotesDrawer(); else { commitNotes(); closeNotesDrawer(); }
     if (!editing) { closePopover(); closePicker(); }
@@ -910,6 +911,13 @@
 
   async function serialize({ inline }) {
     const root = document.documentElement.cloneNode(true);
+    // an in-flight count-up leaves a mid-animation value in the DOM — the
+    // clone must get the pristine text, not the partial number
+    const liveCounts = document.querySelectorAll('[data-animate="count"]');
+    root.querySelectorAll('[data-animate="count"]').forEach((n, i) => {
+      const live = liveCounts[i];
+      if (live?._countRaf) n.textContent = countOriginal.get(live) ?? n.textContent;
+    });
     // extensions get the clone before the strip pass — e.g. to bake an asset
     // bundle into a single-file export. waitUntil() defers the save for async
     // work (fetching assets to inline).
@@ -1094,6 +1102,9 @@
   function commitTextEdit() {
     if (preEditHTML !== null && preEditHTML !== deck.innerHTML) pushSnapshotRaw(preEditHTML);
     preEditHTML = deck.innerHTML;
+    // the edited text is the new pristine value — a stale cache would make the
+    // next count-up restore the old number over the edit
+    $$('[data-animate="count"]', deck).forEach(el => countOriginal.set(el, el.textContent));
   }
   const idleCommit = debounce(() => { if (preEditHTML !== null) commitTextEdit(); }, 800);
 
@@ -1786,7 +1797,11 @@
     if (!body) return;
     const text = body.textContent.trim();
     let aside = notesAside(slides[index]);
-    if (!text) return aside?.remove();
+    const prev = !aside ? "" : [...aside.children].length
+      ? [...aside.children].map(p => p.textContent).join("\n\n")
+      : aside.textContent.trim();
+    if (text === prev) return;
+    if (!text) { aside.remove(); markDirty(); return; }
     if (!aside) { aside = document.createElement("aside"); aside.className = "notes"; slides[index].append(aside); }
     aside.innerHTML = "";
     text.split(/\n{2,}/).forEach(par => {
@@ -1794,6 +1809,10 @@
       p.textContent = par.trim();
       aside.append(p);
     });
+    // the drawer lives outside the deck, so the deck's input listener never
+    // sees these edits — without this, typed notes don't autosave and the
+    // beforeunload guard stays silent
+    markDirty();
   }
 
   /* ------------------------------------------------------- content animations */
@@ -1821,9 +1840,19 @@
         const eased = 1 - Math.pow(1 - p, 3);
         el.textContent = prefix + fmt(target * eased) + suffix;
         if (p < 1) el._countRaf = requestAnimationFrame(tick);
-        else el.textContent = src;
+        else { el.textContent = src; el._countRaf = null; }
       };
       el._countRaf = requestAnimationFrame(tick);
+    });
+  }
+  // an in-flight count-up keeps ticking after edit mode opens and would
+  // overwrite (or snapshot over) a user edit — settle it to the pristine text
+  function settleCounts() {
+    $$('[data-animate="count"]', deck).forEach(el => {
+      if (!el._countRaf) return;
+      cancelAnimationFrame(el._countRaf);
+      el._countRaf = null;
+      el.textContent = countOriginal.get(el) ?? el.textContent;
     });
   }
 
