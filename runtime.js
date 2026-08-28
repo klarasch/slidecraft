@@ -66,6 +66,12 @@
   let txGen = 0;                      // bumped per show(); guards stale rAF callbacks from rapid nav
   const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
   const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+  // shortcut labels: handlers already accept ⌘ or Ctrl (metaKey || ctrlKey) —
+  // this only makes what we DISPLAY match the visitor's keyboard
+  const IS_MAC = /Mac|iP(hone|ad|od)/.test(navigator.platform);
+  const KEY = IS_MAC
+    ? { cmd: "⌘", alt: "⌥", shift: "⇧", del: "⌫" }
+    : { cmd: "Ctrl+", alt: "Alt+", shift: "Shift+", del: "Del" };
 
   /* ---------------------------------------------------------------- setup */
   function decorate() {
@@ -308,19 +314,100 @@
   }
 
   /* ------------------------------------------------------------- overview */
+  let ovSelected = 0;                 // keyboard cursor over the thumbnail grid
+  let ovJumpBuf = "", ovJumpTimer;    // typed slide number, e.g. "1" "4" → 14
+
   function toggleOverview(force) {
     overviewOpen = force ?? !overviewOpen;
     document.body.classList.toggle("is-overview", overviewOpen);
-    if (overviewOpen) buildOverview();
+    if (overviewOpen) {
+      // a text box focused under the grid would swallow the arrow keys
+      document.activeElement?.blur?.();
+      ovSelected = index;
+      buildOverview();
+      requestAnimationFrame(() => ovThumbs()[ovSelected]?.scrollIntoView({ block: "nearest" }));
+    } else {
+      ovJumpBuf = ""; clearTimeout(ovJumpTimer);
+    }
     fit();
+  }
+
+  const ovThumbs = () => $$(".thumb", $("#ov-grid"));
+  // the grid is auto-fill, so the column count is a fact of layout, not CSS.
+  // Cached — reading offsetTop per keypress forces a layout pass and the
+  // selection should land the same frame the key goes down
+  let ovCols = 0;
+  function ovColumns() {
+    if (!ovCols) {
+      const t = ovThumbs();
+      let n = 1;
+      while (n < t.length && t[n].offsetTop === t[0].offsetTop) n++;
+      ovCols = n;
+    }
+    return ovCols;
+  }
+  function ovSelect(i) {
+    const t = ovThumbs();
+    if (!t.length) return;
+    ovSelected = Math.max(0, Math.min(t.length - 1, i));
+    t.forEach((el, j) => el.classList.toggle("is-selected", j === ovSelected));
+    t[ovSelected].scrollIntoView({ block: "nearest" });
+  }
+  function renderOvCount() {
+    $("#ov-count").textContent = ovJumpBuf ? `go to ${ovJumpBuf}…` : `${slides.length} slides`;
+  }
+
+  function ovMoveSlide(from, to) {
+    if (to === from || to < 0 || to >= slides.length) return;
+    snapshot();
+    const s = slides[from], cur = slides[index];
+    to > from ? slides[to].after(s) : slides[to].before(s);
+    decorate();                        // refreshes `slides` + page numbers
+    index = slides.indexOf(cur);       // current slide may have shifted
+    updateCount();
+    history.replaceState(null, "", "#" + (index + 1));
+    ovSelected = to;
+    buildOverview();
+    requestAnimationFrame(() => ovThumbs()[ovSelected]?.scrollIntoView({ block: "nearest" }));
+    syncState();
+  }
+
+  // returns true when the key was handled (caller preventDefaults)
+  function overviewKeydown(e) {
+    if (/^\d$/.test(e.key)) {
+      clearTimeout(ovJumpTimer);
+      ovJumpBuf = (ovJumpBuf + e.key).slice(-3);
+      ovJumpTimer = setTimeout(() => { ovJumpBuf = ""; renderOvCount(); }, 1500);
+      const n = parseInt(ovJumpBuf, 10);
+      if (n >= 1) ovSelect(n - 1);
+      renderOvCount();
+      return true;
+    }
+    const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -ovColumns(), ArrowDown: ovColumns() }[e.key];
+    if (delta) {
+      if (e.altKey || e.shiftKey) {           // ⌥ matches the list-item reorder; ⇧ kept as an alias
+        if (!editing) toast("Turn on Edit mode (E) to reorder slides.");
+        else ovMoveSlide(ovSelected, Math.max(0, Math.min(slides.length - 1, ovSelected + delta)));
+      } else ovSelect(ovSelected + delta);
+      return true;
+    }
+    if (e.key === "Enter") { toggleOverview(false); show(ovSelected); return true; }
+    if (e.key === "Home") { ovSelect(0); return true; }
+    if (e.key === "End") { ovSelect(slides.length - 1); return true; }
+    return false;
   }
 
   function buildOverview() {
     const grid = $("#ov-grid");
     grid.innerHTML = "";
+    ovCols = 0;
+    ovSelected = Math.min(ovSelected, slides.length - 1);
+    $("#ov-hint").innerHTML = editing
+      ? `<kbd>↑↓←→</kbd> select · <kbd>${KEY.alt}arrows</kbd> reorder · <kbd>Enter</kbd> open`
+      : `<kbd>↑↓←→</kbd> select · <kbd>Enter</kbd> open · type a number to jump`;
     slides.forEach((s, i) => {
       const t = document.createElement("div");
-      t.className = "thumb" + (i === index ? " is-current" : "");
+      t.className = "thumb" + (i === index ? " is-current" : "") + (i === ovSelected ? " is-selected" : "");
       t.innerHTML =
         `<div class="thumb__frame"><div class="thumb__scaler"></div></div>` +
         `<div class="thumb__label"><span>${String(i + 1).padStart(2, "0")}</span><b></b></div>`;
@@ -340,7 +427,7 @@
         $(".thumb__scaler", f).style.transform = `scale(${f.clientWidth / W})`;
       });
     });
-    $("#ov-count").textContent = `${slides.length} slides`;
+    renderOvCount();
   }
 
   const slideTitle = s =>
@@ -377,7 +464,7 @@
     if (editing) renderNotesDrawer(); else { commitNotes(); closeNotesDrawer(); }
     if (!editing) { closePopover(); closePicker(); }
     toast(editing
-      ? "Edit mode — click any text to change it. ⌘V pastes an image onto the slide."
+      ? `Edit mode — click any text to change it. ${KEY.cmd}V pastes an image onto the slide.`
       : "Edit mode off");
   }
 
@@ -431,13 +518,31 @@
     ensureStickerHandles(wrap);
     slides[index].append(wrap);
     selectSticker(wrap);
-    toast("Drag to move · corner handles to resize · ⌫ to delete · [ ] to layer");
+    toast(`Drag to move · corner handles to resize · ${KEY.del} to delete · [ ] to layer`);
   }
 
   function selectSticker(el) {
     $$(".sticker.is-sel", deck).forEach(s => s.classList.remove("is-sel"));
     selectedSticker = el;
     el?.classList.add("is-sel");
+  }
+
+  // arrow-key nudge for the selected sticker or pin. One undo entry per
+  // burst of keypresses, not one per press — mirrors how a drag snapshots once
+  let nudgeTimer = null;
+  function nudgeSelected(key, big) {
+    const el = selectedSticker || selectedPin;
+    if (!el) return;
+    if (!nudgeTimer) snapshot();
+    clearTimeout(nudgeTimer);
+    nudgeTimer = setTimeout(() => nudgeTimer = null, 800);
+    const step = big ? 2.5 : 0.5;
+    const dx = { ArrowLeft: -step, ArrowRight: step }[key] || 0;
+    const dy = { ArrowUp: -step, ArrowDown: step }[key] || 0;
+    // pins clamp to their image (like drag); stickers may hang off the slide
+    const clamp = el === selectedPin ? v => Math.max(0, Math.min(100, v)) : v => v;
+    if (dx) el.style.left = clamp((parseFloat(el.style.left) || 0) + dx).toFixed(1) + "%";
+    if (dy) el.style.top = clamp((parseFloat(el.style.top) || 0) + dy).toFixed(1) + "%";
   }
 
   /* --------------------------------------------------- callout pins */
@@ -964,6 +1069,7 @@
     slides = $$(".slide", deck);
     show(Math.min(at, slides.length - 1), true, null, true);
     if (editing) enableEditing();
+    if (overviewOpen) { ovSelected = index; buildOverview(); }  // undo of an overview reorder
     fit();
     markDirty();
     updateUndoUI();
@@ -1055,7 +1161,7 @@
     slides[index].remove();
     slides = $$(".slide", deck); decorate();
     show(Math.min(doomedIndex, slides.length - 1), true, null, true);
-    toast("Slide deleted", { action: "Undo", key: "⌘Z", onAction: () => restore(html), duration: 8000 });
+    toast("Slide deleted", { action: "Undo", key: KEY.cmd + "Z", onAction: () => restore(html), duration: 8000 });
   }
 
   /* ------------------------------------------------------- bullets / delete-element */
@@ -1071,6 +1177,24 @@
     const sel = getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
+  }
+
+  // is the caret on the first (top) / last (bottom) visual line of `el`?
+  // Compared via client rects, so it works inside the scaled deck — both
+  // the caret box and the text box shrink by the same factor.
+  function caretAtEdge(el, top) {
+    const sel = getSelection();
+    if (!sel.rangeCount) return true;
+    const r = sel.getRangeAt(0).cloneRange();
+    r.collapse(top);
+    const rect = r.getBoundingClientRect();
+    if (!rect.height) return true;                 // empty element — no caret box
+    const full = document.createRange();
+    full.selectNodeContents(el);
+    const fRect = full.getBoundingClientRect();
+    if (!fRect.height) return true;
+    return top ? rect.top - fRect.top < rect.height * .5
+               : fRect.bottom - rect.bottom < rect.height * .5;
   }
 
   function initBulletEditing() {
@@ -1100,6 +1224,58 @@
         sel.removeAllRanges();
         sel.addRange(range);
         measureOverflow(slides[index]);
+        return;
+      }
+
+      // ⌥↑ / ⌥↓ moves a list item within its list. Callout notes carry
+      // their pin along (pins pair with notes by DOM order — swapping the
+      // two pins renumbers them while each keeps its spot on the image)
+      if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && (listEl || notesOl)) {
+        e.preventDefault();
+        const up = e.key === "ArrowUp";
+        const sib = up ? el.previousElementSibling : el.nextElementSibling;
+        if (sib?.tagName !== "LI") return;
+        snapshot();
+        up ? sib.before(el) : sib.after(el);
+        if (notesOl) {
+          const fig = $(".callout__media", el.closest(".slide"));
+          const lo = Math.min([...notesOl.children].indexOf(el), [...notesOl.children].indexOf(sib));
+          const pins = fig ? $$(".pin", fig) : [];
+          if (pins[lo] && pins[lo + 1]) pins[lo].before(pins[lo + 1]);
+        }
+        markRevealSteps();
+        placeCaret(el, true);
+        measureOverflow(slides[index]);
+        return;
+      }
+
+      // Tab / ⇧Tab cycles every text box on the slide, in any layout
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const leaves = $$("[contenteditable]", slides[index]);
+        const i = leaves.indexOf(el);
+        const target = leaves[(i + (e.shiftKey ? -1 : 1) + leaves.length) % leaves.length];
+        if (target) placeCaret(target, true);
+        return;
+      }
+
+      // plain ↑ / ↓ on the caret's first / last line jumps to the text
+      // element directly above / below — vertical stacks and lists only.
+      // The target must actually sit above/below (horizontal overlap), so
+      // grids like cards or stats don't zig-zag; those navigate with Tab
+      if (!e.altKey && !e.metaKey && !e.ctrlKey && !e.shiftKey &&
+          (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        const up = e.key === "ArrowUp";
+        if (caretAtEdge(el, up)) {
+          const r = el.getBoundingClientRect();
+          const target = $$("[contenteditable]", slides[index])
+            .filter(o => o !== el)
+            .map(o => ({ o, b: o.getBoundingClientRect() }))
+            .filter(({ b }) => b.right > r.left && b.left < r.right &&
+              (up ? b.bottom <= r.top + 1 : b.top >= r.bottom - 1))
+            .sort((a, b) => up ? b.b.bottom - a.b.bottom : a.b.top - b.b.top)[0]?.o;
+          if (target) { e.preventDefault(); placeCaret(target, up); }
+        }
         return;
       }
 
@@ -1197,9 +1373,13 @@
     ["→ / space", "Next"], ["←", "Previous"], ["R / Home", "Restart from slide 1"], ["End", "Last slide"],
     ["O", "Overview"], ["E", "Edit mode"], ["S", "Presenter view"], ["T", "Cycle theme"],
     ["P", "Export PDF"], ["D", "Download single file"], ["F", "Fullscreen"], ["?", "This sheet"], ["Esc", "Close / finish editing"],
-    ["⌘Z", "Undo"], ["⌘⇧Z", "Redo"], ["⌘D", "Duplicate slide"], ["⌫", "Delete selected sticker"],
-    ["[ / ]", "Layer selected sticker"],
-    ["Enter", "New list item"], ["⇧Enter", "Line break"], ["Backspace", "Delete empty item / element"],
+    ["↑↓←→", "Overview: select slide"], ["Enter", "Overview: open selected slide"],
+    ["1…9", "Overview: type a slide number"], [`${KEY.alt}arrows`, "Overview: reorder slide (edit mode)"],
+    [`${KEY.cmd}Z`, "Undo"], [`${KEY.cmd}${KEY.shift}Z`, "Redo"], [`${KEY.cmd}D`, "Duplicate slide"], [KEY.del, "Delete selected sticker"],
+    ["[ / ]", "Layer selected sticker"], ["Arrows", `Nudge selected sticker / pin (${KEY.shift} = bigger)`],
+    ["Tab", "Next text box on the slide"], ["↑ / ↓", "At text edge: jump to text above / below"],
+    [`${KEY.alt}↑ / ${KEY.alt}↓`, "Move list item up / down"],
+    ["Enter", "New list item"], [`${KEY.shift}Enter`, "Line break"], ["Backspace", "Delete empty item / element"],
     ["2×click image", "Add a pin (callout slide)"],
   ];
 
@@ -1211,6 +1391,7 @@
       <div class="overview" data-runtime>
         <div class="overview__head">
           <h2>${escapeHtml(document.title)}</h2>
+          <span class="ov-hint" id="ov-hint"></span>
           <span id="ov-count"></span>
         </div>
         <div class="overview__grid" id="ov-grid"></div>
@@ -1279,14 +1460,14 @@
       ${btn({ id: "btn-next", icon: "next", cls: "icon-only", key: "→", tip: "Next slide" })}
       <span class="tb-sep"></span>
       ${btn({ id: "btn-add", icon: "plus", label: "Add slide", tip: "Insert a new slide after this one" })}
-      ${btn({ id: "btn-dup", icon: "dup", cls: "icon-only", key: "⌘D", tip: "Duplicate slide" })}
-      ${btn({ id: "btn-del", icon: "trash", cls: "icon-only", key: "⌫", tip: "Delete slide" })}
+      ${btn({ id: "btn-dup", icon: "dup", cls: "icon-only", key: KEY.cmd + "D", tip: "Duplicate slide" })}
+      ${btn({ id: "btn-del", icon: "trash", cls: "icon-only", key: KEY.del, tip: "Delete slide" })}
       <span class="tb-sep"></span>
       ${btn({ id: "btn-opts", icon: "sliders", label: "Options", tip: "Per-slide options — transition, footer, brand extras" })}
       ${btn({ id: "btn-note", icon: "spark", label: "Request change", tip: "Flag this slide for Claude to revise later" })}
       ${btn({ id: "btn-notes", icon: "notes", label: "Speaker notes", tip: "Add notes for presenter view and printed PDFs" })}
       <span class="tb-sep"></span>
-      ${btn({ id: "btn-undo", icon: "undo", cls: "icon-only", key: "⌘Z", tip: "Undo" })}
+      ${btn({ id: "btn-undo", icon: "undo", cls: "icon-only", key: KEY.cmd + "Z", tip: "Undo" })}
       <button id="btn-save" class="tb-btn" data-tip="Save changes to this file" aria-label="Save"><svg class="icon"><use href="#i-save"/></svg><span class="js-save-label">Save</span></button>
       <span class="tb-sep"></span>
       ${btn({ id: "btn-done", icon: "check", label: "Done", cls: "primary", tip: "Exit edit mode" })}
@@ -1816,6 +1997,7 @@
   /* --------------------------------------------------------------- events */
   function bind() {
     addEventListener("resize", fit);
+    addEventListener("resize", () => ovCols = 0);   // auto-fill grid may reflow
     addEventListener("resize", debounce(measureAll, 150));
     addEventListener("fullscreenchange", fit);
 
@@ -1860,13 +2042,23 @@
         if (e.key === "Escape") e.target.blur();
         return;
       }
+      if (overviewOpen && overviewKeydown(e)) { e.preventDefault(); return; }
+      if (editing && !meta && (selectedSticker || selectedPin) &&
+          /^Arrow(Left|Right|Up|Down)$/.test(e.key)) {
+        e.preventDefault();
+        nudgeSelected(e.key, e.shiftKey);
+        return;
+      }
       switch (e.key.toLowerCase()) {
         case "arrowright": case " ": case "pagedown": e.preventDefault(); advance(); break;
         case "arrowleft": case "pageup": e.preventDefault(); retreat(); break;
         case "home": case "r": show(0, true, "fwd"); break;
         case "end": show(slides.length - 1, true, "fwd"); break;
         case "o": toggleOverview(); break;
-        case "e": toggleEdit(); break;
+        // preventDefault matters: entering edit mode makes text editable
+        // synchronously, and without it the same keystroke's default text
+        // insertion can land an "e" wherever a caret was left behind
+        case "e": e.preventDefault(); toggleEdit(); break;
         case "t": cycleTheme(); break;
         case "p": e.preventDefault(); exportPDF($("#btn-print")); break;
         case "d": if (!meta) downloadStandalone(); break;
@@ -1874,6 +2066,14 @@
         case "f": document.fullscreenElement ? document.exitFullscreen()
           : document.documentElement.requestFullscreen(); break;
         case "?": toggleShortcuts(); break;
+        case "tab":
+          // nothing focused yet — Tab dives into the slide's first text box
+          // (once inside, the deck handler cycles box to box)
+          if (editing && !overviewOpen) {
+            e.preventDefault();
+            placeCaret($("[contenteditable]", slides[index]), true);
+          }
+          break;
         case "backspace": case "delete":
           if (!editing) break;
           if (selectedSticker) { snapshot(); selectedSticker.remove(); selectSticker(null); }

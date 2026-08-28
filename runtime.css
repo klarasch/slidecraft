@@ -1028,8 +1028,9 @@ body.has-notes-drawer .stage { padding-right: var(--notes-gutter, 340px); } /* t
 /* --- overview / table of contents --- */
 .overview {
   position: fixed; inset: 0; z-index: 50;
-  background: rgba(8, 8, 11, .93);
-  backdrop-filter: blur(20px);
+  /* opaque, no backdrop blur: re-blurring the deck on every scroll made
+     keyboard navigation feel laggy */
+  background: #08080b;
   overflow: auto; padding: 60px 56px 90px;
   display: none;
 }
@@ -1037,20 +1038,33 @@ body.is-overview { overflow: auto; }
 body.is-overview .overview { display: block; }
 .overview__head {
   display: flex; align-items: baseline; justify-content: space-between;
-  margin-bottom: 32px;
+  gap: 20px; margin-bottom: 32px;
 }
 .overview__head h2 { font: 600 22px/1 var(--font-display); letter-spacing: -.02em; margin: 0; color: #fff; }
 .overview__head span { font: 500 12px/1 var(--font-mono); letter-spacing: .1em; color: rgba(255,255,255,.4); }
+.overview__head .ov-hint { margin-left: auto; text-transform: none; letter-spacing: .04em; }
+.overview__head .ov-hint kbd {
+  font: inherit; color: rgba(255,255,255,.7);
+  border: 1px solid rgba(255,255,255,.2); border-radius: 4px; padding: 2px 5px;
+}
 .overview__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 26px; }
 .thumb { cursor: pointer; }
 .thumb__frame {
   position: relative; width: 100%; aspect-ratio: 16 / 9;
   overflow: hidden; border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, .14);
+  contain: content;                       /* thumbs never paint outside their frame */
   transition: border-color .2s, transform .2s var(--ease);
 }
 .thumb:hover .thumb__frame { border-color: var(--accent); transform: translateY(-3px); }
 .thumb.is-current .thumb__frame { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+/* keyboard cursor — ring only, no transitioned properties, so it lands the
+   same frame the key is pressed (the hover lift animates; this must not) */
+.thumb.is-selected .thumb__frame {
+  transition: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 14px 34px -14px rgba(0, 0, 0, .7);
+}
 .thumb__scaler {
   position: absolute; top: 0; left: 0;
   width: var(--slide-w); height: var(--slide-h);
@@ -1093,14 +1107,6 @@ body.is-editing [contenteditable]:focus {
   outline: 2px solid var(--accent); outline-offset: 6px;
   background: color-mix(in oklab, var(--accent) 8%, transparent);
 }
-body.is-editing [contenteditable]:focus::after {
-  content: "Editing — Esc to finish";
-  position: absolute; right: 0; top: -26px;
-  font: 500 11px/1 var(--font-mono); letter-spacing: .06em;
-  color: var(--accent); text-transform: uppercase; white-space: nowrap;
-  pointer-events: none;
-}
-body.is-editing [contenteditable].label-below:focus::after { top: auto; bottom: -26px; }
 
 /* pasted / dropped images, freely positioned, with corner resize handles */
 .sticker {

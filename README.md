@@ -26,7 +26,7 @@ pointer to the bottom of the window to bring it back.
 | key | does |
 |---|---|
 | `→` `←` `space` | navigate (or click the left/right of the slide) |
-| `O` | overview / table of contents |
+| `O` | overview / table of contents — arrows select, Enter opens, type a slide number to jump, `⌥`+arrows reorder (edit mode) |
 | `E` | edit mode |
 | `S` | presenter view — speaker notes on a second screen |
 | `T` | cycle theme (only if the deck offers more than one) |
@@ -39,7 +39,13 @@ pointer to the bottom of the window to bring it back.
 One bar, full words. Hover any button for its shortcut; `?` lists them all.
 
 - Click any text to change it in place. Esc finishes.
-- In a bullet list, Enter adds a bullet, Backspace in an empty bullet removes it.
+- In a bullet list, Enter adds a bullet, Backspace in an empty bullet removes it,
+  `⌥↑` / `⌥↓` moves a bullet up or down.
+- Tab / `⇧`Tab cycles the text boxes on the slide; `↑` / `↓` on the first / last line
+  of a text box jumps to the text directly above / below (vertical stacks and lists).
+- Arrow keys nudge a selected sticker or pin (`⇧` for bigger steps).
+- On Windows/Linux the same shortcuts use Ctrl and Alt — the toolbar and `?` sheet
+  show the right keys for your platform.
 - Click an image slot (or drag a file onto it) to replace the picture.
 - `⌘V` an image → it lands on the slide as a sticker. Drag to move, corner handles to resize, `⌫` deletes.
 - On a callout slide: drag the numbered pins, double-click the image to add a pin + note,
