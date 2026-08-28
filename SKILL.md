@@ -1,9 +1,9 @@
 ---
-name: slidecraft
-description: Generate branded, editable HTML slide decks, revise existing ones, and train a company brand theme. Use whenever the user wants slides, a slide deck, a presentation, a keynote, a pitch deck, a talk, or a deck for a meeting, all-hands, workshop, lecture or conference — including "make me a deck", "put this in slides", "turn this into a presentation". Also use to revise an existing slidecraft deck.html (applying data-note change requests, rewriting or adding slides in place), and to set up a brand from a website URL, brand guidelines PDF, or logo. Not for .pptx or Google Slides files.
+name: slaydy
+description: Generate branded, editable HTML slide decks, revise existing ones, and train a company brand theme. Use whenever the user wants slides, a slide deck, a presentation, a keynote, a pitch deck, a talk, or a deck for a meeting, all-hands, workshop, lecture or conference — including "make me a deck", "put this in slides", "turn this into a presentation". Also use to revise an existing slaydy deck.html (applying data-note change requests, rewriting or adding slides in place), and to set up a brand from a website URL, brand guidelines PDF, or logo. Not for .pptx or Google Slides files.
 ---
 
-# slidecraft
+# slaydy
 
 Decks are HTML. The runtime is a fixed asset; you write markup and nothing else.
 
@@ -25,8 +25,8 @@ layout problem with inline styles or a `<style>` block.
 | mode | trigger |
 |---|---|
 | **generate** | default — the user wants a new deck |
-| **revise** | a `deck.html` with slidecraft markup exists in the target folder, or the user points at one ("apply my notes", "fix slide 4", "make the intro punchier") |
-| **setup** | the user wants a brand: "set up slidecraft for Acme", or hands over a website URL, brand PDF, or logo |
+| **revise** | a `deck.html` with slaydy markup exists in the target folder, or the user points at one ("apply my notes", "fix slide 4", "make the intro punchier") |
+| **setup** | the user wants a brand: "set up slaydy for Acme", or hands over a website URL, brand PDF, or logo |
 
 Check for an existing `deck.html` before assuming generate. If one exists and the user's request
 could be a revision, it is a revision.
@@ -73,7 +73,7 @@ Five fields:
 Store the settled brief in `<head>`:
 
 ```html
-<meta name="slidecraft-brief"
+<meta name="slaydy-brief"
       content="occasion=sales pitch; audience=CTO + platform team; minutes=20; tone=direct; tier=polished">
 ```
 
@@ -230,7 +230,7 @@ holds their latest slides and `data-note` requests. Run
 under their original names), and the slide markup lands in a small `deck-work.html`. Port that
 markup into `deck.html`, then revise as usual.
 
-1. Read `<meta name="slidecraft-brief">` to recover the tier and tone. Stay consistent with them.
+1. Read `<meta name="slaydy-brief">` to recover the tier and tone. Stay consistent with them.
 2. `grep -o 'data-note="[^"]*"' deck.html` — every hit is a change request from the user, written
    next to the slide it concerns.
 3. Apply each one, then **remove that `data-note` attribute**. Leaving it behind means the change
@@ -303,8 +303,8 @@ one message. Two things to say while you do:
   "startup deck".
 
 **Then write** into this skill's folder. If that folder is not writable (an installed skill in
-Cowork or Claude.ai is), write the same files into `slidecraft-brand/` next to the user's working
-files instead, and finish by saying: "Add the contents of `slidecraft-brand/` to the slidecraft
+Cowork or Claude.ai is), write the same files into `slaydy-brand/` next to the user's working
+files instead, and finish by saying: "Add the contents of `slaydy-brand/` to the slaydy
 skill folder and re-install it — from then on every deck uses this brand."
 
 Files:

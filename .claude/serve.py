@@ -1,4 +1,4 @@
-"""Dev server for slidecraft: static files with Cache-Control: no-store, so reloads never serve stale runtime files."""
+"""Dev server for slaydy: static files with Cache-Control: no-store, so reloads never serve stale runtime files."""
 import os, sys
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer

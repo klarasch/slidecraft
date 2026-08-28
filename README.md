@@ -1,4 +1,4 @@
-# slidecraft
+# slaydy
 
 Branded HTML slide decks that stay editable after Claude writes them.
 
@@ -12,7 +12,7 @@ ask for a deck. `SKILL.md` is the instruction set; `LAYOUTS.md` is the markup co
 |---|---|---|
 | **generate** | "make me a 20-minute deck on X" | a new folder with `deck.html` + runtime + theme |
 | **revise** | "apply my notes" / "fix slide 4" | your `deck.html` edited in place, never regenerated |
-| **setup** | "set up slidecraft for Acme" + a URL or brand PDF | `themes/acme.css` + a voice file, used from then on |
+| **setup** | "set up slaydy for Acme" + a URL or brand PDF | `themes/acme.css` + a voice file, used from then on |
 
 Claude asks at most one round of questions — occasion, audience, length, tone, and tier
 (`template` / `polished` / `bespoke`, which decides motion and speaker notes). Reply "go" to take
@@ -123,8 +123,8 @@ standalone.py      builds the single shareable file (named from <title>); --expl
 build.sh           assembles the installable skill into dist/ (repo = dev source)
 ```
 
-This repo is the dev source. `./build.sh` produces `dist/slidecraft/` — the actual skill to
-drop into `.claude/skills/` or install in Cowork — plus `dist/slidecraft-skill.zip` to share.
+This repo is the dev source. `./build.sh` produces `dist/slaydy/` — the actual skill to
+drop into `.claude/skills/` or install in Cowork — plus `dist/slaydy-skill.zip` to share.
 Demo deck, README, and HANDOFF stay out of the shipped skill.
 
 ## Known gaps (deliberate, v1)

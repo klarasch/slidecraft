@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a self-contained single-file deck from a slidecraft deck folder,
+"""Build a self-contained single-file deck from a slaydy deck folder,
 or take one apart again.
 
 Usage:  python3 standalone.py path/to/deck.html [out.html]

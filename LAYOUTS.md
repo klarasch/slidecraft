@@ -325,7 +325,7 @@ falls back to system fonts.
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Deck title</title>
-<meta name="slidecraft-brief" content="occasion=…; audience=…; minutes=…; tone=…; tier=…">
+<meta name="slaydy-brief" content="occasion=…; audience=…; minutes=…; tone=…; tier=…">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -368,7 +368,7 @@ After writing the file, confirm: it contains `<div class="deck">`, the theme `<l
 In `<head>`:
 
 ```html
-<meta name="slidecraft-brief"
+<meta name="slaydy-brief"
       content="occasion=sales pitch; audience=CTO + platform team; minutes=20; tone=direct; tier=polished">
 ```
 

@@ -1,4 +1,4 @@
-# slidecraft — handoff
+# slaydy — handoff
 
 Context for continuing this project in a fresh session. Read this, then `SKILL.md`, then
 `LAYOUTS.md`. `BRANDING.md` is for making it a company's own.
@@ -41,20 +41,20 @@ exist (`show-notes` class, cleared on afterprint unless `?notes`). Known observa
 mesh-gradient SVGs rasterize huge in Chrome's PDF pipeline (~56 MB) — revisit if real decks hit it.
 Standalone decks re-save and re-export themselves without fetch. The
 browser inlining needs http(s) — file:// decks can't fetch siblings, the button toasts guidance.
-`window.slidecraft = { serialize, options, transient, snapshot, toast }` is exposed for
+`window.slaydy = { serialize, options, transient, snapshot, toast }` is exposed for
 tooling and brand extensions (CUSTOMIZING.md layer 3). `options.declare` registers per-slide
 data-* options — derived ones are stripped on save, authored ones with `values` get boot
 validation plus a control in the edit-mode Options panel; a `when` selector/predicate keeps
 each row on the slides it's relevant to, `onchange` runs side effects. Multi-theme decks
 export their whole theme list into single files as `<style data-theme>` blocks (T keeps
-working; `--explode` restores `themes/*.css`). Saves emit `slidecraft:serialize`
+working; `--explode` restores `themes/*.css`). Saves emit `slaydy:serialize`
 on `.deck`, and both single-file exporters inline relative `url()` refs inside linked
 stylesheets. Transitions move slide content, never the slide box (translucent-slide themes), and only the
 leaving slide fades — on top of the already-opaque entering one, so identical backgrounds
 stay pixel-steady instead of dipping mid-cross-fade;
 fit() snaps the deck to whole pixels, `--deck-pad` controls the windowed inset.
 Repo vs skill: this repo is the dev source; `./build.sh` assembles the installable skill into
-`dist/slidecraft/` (+ zip) — SKILL/LAYOUTS/BRANDING/CUSTOMIZING, runtime, themes, standalone.py;
+`dist/slaydy/` (+ zip) — SKILL/LAYOUTS/BRANDING/CUSTOMIZING, runtime, themes, standalone.py;
 demo deck and repo docs excluded.
 First real skill-install test (2026-08-24, `~/Code/slidecraft-testbed`) caught a contract hole:
 with the demo deck excluded from the build, nothing documented the deck.html shell, and the
@@ -65,7 +65,7 @@ brief message + never picking a theme silently); runtime.js boot self-repairs mi
 wrappers and theme-link order (repairs persist through save). Lesson: anything only the demo
 deck demonstrated is invisible to the shipped skill — the contract docs must be self-sufficient.
 `CUSTOMIZING.md` defines the update-safe bespoke story: theme-layer CSS,
-per-install `custom.css`/`custom.js`, and the `slidecraft:slidechange` / `slidecraft:step`
+per-install `custom.css`/`custom.js`, and the `slaydy:slidechange` / `slaydy:step`
 runtime events.
 
 ---
@@ -153,11 +153,11 @@ runtime and document it in `LAYOUTS.md`; never let a deck carry its own `<style>
 - Headless check: `Chrome --headless=new --dump-dom http://127.0.0.1:8765/deck.html | grep data-overflow`.
 - Model choice: runtime/layout/theme code → Sonnet, high effort; `SKILL.md` and layout-system
   taste calls → Opus; visual fix rounds → Sonnet, medium.
-- Remote: https://github.com/klarasch/slidecraft (private), branch `master`.
+- Remote: https://github.com/klarasch/slidecraft (private), branch `master` — repo rename to `slaydy` pending on GitHub.
 
 ## 7. Prompt to start the next session
 
-> I'm continuing work on `slidecraft`, a Claude Code skill that generates editable branded
+> I'm continuing work on `slaydy`, a Claude Code skill that generates editable branded
 > HTML slide decks. Read `HANDOFF.md`, then `SKILL.md` and `LAYOUTS.md` in this folder.
 > The critical constraint: `runtime.js` and `runtime.css` are fixed assets — per deck we
 > generate only `deck.html`. Never let the model write per-deck CSS or JS.

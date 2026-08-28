@@ -1,6 +1,6 @@
-# Branding slidecraft
+# Branding slaydy
 
-How to adapt slidecraft to a company identity. A brand is four things on disk:
+How to adapt slaydy to a company identity. A brand is four things on disk:
 
 ```
 themes/<name>.css     nine design tokens + font overrides   ← required

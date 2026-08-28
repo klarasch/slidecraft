@@ -1,5 +1,5 @@
 /* =========================================================================
-   slidecraft — runtime.js
+   slaydy — runtime.js
    Fixed asset. Ships with the skill. Never regenerated per-deck.
 
    Responsibilities:
@@ -47,7 +47,7 @@
   })();
 
   const deck = $(".deck");
-  if (!deck) return console.warn("[slidecraft] no .deck found");
+  if (!deck) return console.warn("[slaydy] no .deck found");
   let slides = $$(".slide", deck);
   let index = 0;
   let step = 0;                       // current reveal step on the active slide
@@ -301,7 +301,7 @@
   function syncState() { mainChan?.postMessage({ index, step }); }
   // public events — the stable hook surface for an install's custom.js
   // (see CUSTOMIZING.md); detail carries live DOM nodes, never clones
-  const emit = (name, detail) => deck.dispatchEvent(new CustomEvent("slidecraft:" + name, { detail, bubbles: true }));
+  const emit = (name, detail) => deck.dispatchEvent(new CustomEvent("slaydy:" + name, { detail, bubbles: true }));
   function updateCount() {
     const t = `${index + 1} / ${slides.length}`;
     $$(".js-count").forEach(el => el.textContent = t);
@@ -749,13 +749,13 @@
   // axis that matters: AUTHORED options are part of the deck and survive a
   // save; DERIVED ones are computed at display time and stripped from every
   // save, wherever they appear. Extensions declare theirs the same way:
-  //   window.slidecraft.options.declare({ name: "data-surface", derived: true })
-  //   window.slidecraft.options.declare({ name: "data-veil", label: "Veil",
+  //   window.slaydy.options.declare({ name: "data-surface", derived: true })
+  //   window.slaydy.options.declare({ name: "data-veil", label: "Veil",
   //     values: ["soft", "dense"], hint: "Scrim strength over the gradient." })
   // A declaration with `values` is validated at boot (typos warn instead of
   // failing silently) and gets a control in the edit-mode Slide-options panel
   // for free; `type: "flag"` renders an on/off toggle there. TRANSIENT is the
-  // derived set — window.slidecraft.transient.add() still works and is
+  // derived set — window.slaydy.transient.add() still works and is
   // equivalent to declaring { name, derived: true }.
   const TRANSIENT = new Set();
   const OPTIONS = new Map();
@@ -798,7 +798,7 @@
     slides.forEach((s, i) => {
       const v = s.getAttribute(o.name);
       if (v !== null && v !== "" && !o.values.includes(v))
-        console.warn(`slidecraft: slide ${i + 1} has ${o.name}="${v}" — expected one of: ${o.values.join(", ")}`);
+        console.warn(`slaydy: slide ${i + 1} has ${o.name}="${v}" — expected one of: ${o.values.join(", ")}`);
     });
   }
   const validateOptions = () => OPTIONS.forEach(validateOption);
@@ -855,7 +855,7 @@
     if (window.showDirectoryPicker) {
       try {
         if (!dirHandle) {
-          dirHandle = await showDirectoryPicker({ mode: "readwrite", id: "slidecraft" });
+          dirHandle = await showDirectoryPicker({ mode: "readwrite", id: "slaydy" });
         }
         if (!standalone && pending.size) {
           const imgs = await dirHandle.getDirectoryHandle("images", { create: true });
@@ -1683,7 +1683,7 @@
   function openPresenter() {
     const sep = location.search ? "&" : "?";
     const url = location.pathname + location.search + sep + "presenter" + location.hash;
-    const win = window.open(url, "slidecraft-presenter", "width=1100,height=700");
+    const win = window.open(url, "slaydy-presenter", "width=1100,height=700");
     if (!win) toast("Presenter view needs a popup — allow popups for this page, then try again.");
   }
 
@@ -1753,7 +1753,7 @@
       $("#pv-clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       $("#pv-elapsed").textContent = elapsedStart ? fmtElapsed(Date.now() - elapsedStart) : "00:00";
     }, 1000);
-    const chan = new BroadcastChannel("slidecraft:" + location.pathname);
+    const chan = new BroadcastChannel("slaydy:" + location.pathname);
     // heartbeat: hello every second → any deck window answers with its state.
     // While no answer lands, keys go nowhere (deck closed, popup became the
     // only window, Safari file:// isolation) — say so instead of failing
@@ -1798,7 +1798,7 @@
     renderPresenter();
   }
   function initMainChannel() {
-    mainChan = new BroadcastChannel("slidecraft:" + location.pathname);
+    mainChan = new BroadcastChannel("slaydy:" + location.pathname);
     mainChan.onmessage = e => {
       const d = e.data;
       if (d?.hello) return syncState();
@@ -1999,7 +1999,7 @@
     // snapshot  — push the current deck state onto the undo stack (call
     //             BEFORE mutating, so ⌘Z lands on the extension's edit)
     // toast     — the runtime's own transient message UI
-    window.slidecraft = {
+    window.slaydy = {
       serialize, snapshot, toast, transient: TRANSIENT,
       options: { declare: declareOption, get: n => OPTIONS.get(n), all: () => [...OPTIONS.values()] },
     };

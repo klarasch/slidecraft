@@ -1,5 +1,5 @@
 #!/bin/bash
-# Assemble the distributable Claude skill into dist/slidecraft/ (+ a zip).
+# Assemble the distributable Claude skill into dist/slaydy/ (+ a zip).
 # The repo is the dev source — demo deck, HANDOFF, README stay out of the
 # shipped skill; what ships is the instruction set, the contract docs, the
 # runtime, the stock themes, and the standalone builder.
@@ -21,18 +21,18 @@ else
   rm -f runtime.min.js runtime.min.css
 fi
 
-rm -rf dist/slidecraft
-mkdir -p dist/slidecraft
+rm -rf dist/slaydy
+mkdir -p dist/slaydy
 
-cp SKILL.md LAYOUTS.md BRANDING.md CUSTOMIZING.md runtime.js runtime.css standalone.py dist/slidecraft/
-[ -f runtime.min.js ] && cp runtime.min.js runtime.min.css dist/slidecraft/
-cp -R themes dist/slidecraft/themes
-cp -R icons dist/slidecraft/icons
-[ -d fonts ] && cp -R fonts dist/slidecraft/fonts
+cp SKILL.md LAYOUTS.md BRANDING.md CUSTOMIZING.md runtime.js runtime.css standalone.py dist/slaydy/
+[ -f runtime.min.js ] && cp runtime.min.js runtime.min.css dist/slaydy/
+cp -R themes dist/slaydy/themes
+cp -R icons dist/slaydy/icons
+[ -d fonts ] && cp -R fonts dist/slaydy/fonts
 
-(cd dist && rm -f slidecraft-skill.zip && zip -qr slidecraft-skill.zip slidecraft)
+(cd dist && rm -f slaydy-skill.zip && zip -qr slaydy-skill.zip slaydy)
 
-echo "dist/slidecraft/:"
-ls dist/slidecraft
+echo "dist/slaydy/:"
+ls dist/slaydy
 echo
-echo "→ install by dropping dist/slidecraft into .claude/skills/, or share dist/slidecraft-skill.zip"
+echo "→ install by dropping dist/slaydy into .claude/skills/, or share dist/slaydy-skill.zip"
