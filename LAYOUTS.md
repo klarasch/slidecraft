@@ -221,7 +221,22 @@ default; add `gallery--2` for two across, `gallery--4` for a 2×2 grid.
 </div>
 ```
 
-### `slide--code` — mono block. Escape `<` as `&lt;`. Max 14 lines.
+### `slide--code` — a terminal-window block. Escape `<` as `&lt;`. Max 14 lines.
+The runtime highlights the code at boot and paints the `<pre>` as a small terminal window
+(title bar, three monochrome rings). Highlighting is a view only — the deck file always
+saves as plain text inside the `<pre>`, and edit mode drops back to plain text while typing.
+
+| attribute on `<pre>` | does |
+|---|---|
+| `data-lang="js\|ts\|py\|sh\|json\|css\|html\|go\|rust\|sql"` | pin the language; omit and it is detected from the source |
+| `data-lang="none"` | no highlighting |
+| `data-label="server.py"` | caption in the window title bar |
+| `data-chrome="none"` | plain filled block, no window bar |
+
+```html
+<pre data-lang="py" data-label="pipeline.py">def score(run):
+    return round(min(run["speed"], 1.0), 3)</pre>
+```
 
 ### `slide--end` — centred closing card.
 

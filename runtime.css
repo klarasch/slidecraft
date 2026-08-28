@@ -29,6 +29,17 @@
   --accent: #ff5b2e;
   --accent-2: #7c5cff;
   --accent-fg: #ffffff;
+
+  /* code tokens — derived, so a theme only overrides one if it wants to */
+  --code-kw: var(--accent);
+  --code-str: color-mix(in oklab, var(--accent-2) 78%, var(--fg));
+  --code-num: var(--accent-2);
+  --code-lit: var(--accent-2);
+  --code-key: color-mix(in oklab, var(--accent) 55%, var(--fg));
+  --code-fn: color-mix(in oklab, var(--fg) 82%, var(--accent-2));
+  --code-attr: color-mix(in oklab, var(--accent) 45%, var(--fg));
+  --code-com: color-mix(in oklab, var(--muted) 80%, transparent);
+  --code-punc: color-mix(in oklab, var(--fg) 52%, transparent);
 }
 
 * { box-sizing: border-box; }
@@ -776,16 +787,69 @@ body.is-editing .pin.is-sel { outline: 2px solid #fff; outline-offset: 2px; }
 .slide--gallery .gallery--4 { grid-template-columns: repeat(2, 1fr); }
 .slide--gallery .media { min-height: 0; }
 
-/* --- code / mono block --- */
+/* --- code / mono block ---
+   The <pre> paints itself as a small terminal window: a title bar with three
+   monochrome rings (deliberately not the traffic-light colours — this should
+   read as "a terminal", not "macOS"), an optional data-label caption, and the
+   code below. All of it is ::before/::after, so the saved markup stays a bare
+   <pre> and edit mode has nothing extra to trip over. */
 .slide--code { gap: 34px; }
 .slide--code pre {
+  position: relative;
   margin: 0; flex: 1; overflow: hidden;
-  background: var(--surface); border: 1px solid var(--faint); border-radius: 14px;
-  padding: 30px 34px;
+  background: var(--surface);
+  border: 1px solid var(--faint);
+  border-radius: 14px;
+  padding: 62px 34px 30px;
   font: 400 17px/1.65 var(--font-mono);
   color: var(--fg);
   white-space: pre-wrap;
+  box-shadow: 0 24px 60px -34px rgba(0, 0, 0, .55),
+              inset 0 1px 0 color-mix(in oklab, var(--fg) 6%, transparent);
 }
+/* title bar — carries the optional caption, centred like a window title */
+.slide--code pre::before {
+  content: attr(data-label);
+  position: absolute; inset: 0 0 auto 0; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 92px;
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: .07em;
+  color: color-mix(in oklab, var(--muted) 85%, transparent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: color-mix(in oklab, var(--fg) 4%, transparent);
+  border-bottom: 1px solid var(--faint);
+  border-radius: 13px 13px 0 0;
+}
+/* three hollow rings, one gradient each — monochrome, so the window belongs
+   to no particular OS and takes the theme's ink instead of a fixed palette */
+.slide--code pre::after {
+  content: "";
+  position: absolute; left: 20px; top: 16px;
+  width: 46px; height: 10px;
+  --ring: color-mix(in oklab, var(--fg) 34%, transparent);
+  background:
+    radial-gradient(circle at 5px 5px,  transparent 0 2.6px, var(--ring) 2.6px 4.1px, transparent 4.3px),
+    radial-gradient(circle at 23px 5px, transparent 0 2.6px, var(--ring) 2.6px 4.1px, transparent 4.3px),
+    radial-gradient(circle at 41px 5px, transparent 0 2.6px, var(--ring) 2.6px 4.1px, transparent 4.3px);
+}
+/* data-chrome="none" drops the window and goes back to a plain fill */
+.slide--code pre[data-chrome="none"] { padding-top: 30px; box-shadow: none; }
+.slide--code pre[data-chrome="none"]::before,
+.slide--code pre[data-chrome="none"]::after { display: none; }
+
+/* syntax tokens. Derived from the theme's own accents so any brand gets a
+   coherent scheme for free; a theme can override any --code-* it dislikes. */
+.slide--code pre .tok--com  { color: var(--code-com); font-style: italic; }
+.slide--code pre .tok--str  { color: var(--code-str); }
+.slide--code pre .tok--key  { color: var(--code-key); }
+.slide--code pre .tok--num  { color: var(--code-num); }
+.slide--code pre .tok--lit  { color: var(--code-lit); }
+.slide--code pre .tok--kw   { color: var(--code-kw); font-weight: 500; }
+.slide--code pre .tok--fn   { color: var(--code-fn); }
+.slide--code pre .tok--tag  { color: var(--code-kw); font-weight: 500; }
+.slide--code pre .tok--attr { color: var(--code-attr); }
+.slide--code pre .tok--punc { color: var(--code-punc); }
 
 /* --- end card --- */
 .slide--end { justify-content: center; align-items: center; text-align: center; gap: 26px; }

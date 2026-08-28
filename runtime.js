@@ -122,6 +122,7 @@
       ensureOverflowBadge(s);
       $$(".sticker", s).forEach(ensureStickerHandles);
       if (s.classList.contains("slide--placeholder")) ensurePlaceholderNote(s);
+      if (s.classList.contains("slide--code")) $$("pre", s).forEach(highlight);
     });
     markRevealSteps();
   }
@@ -443,6 +444,7 @@
   ].join(",");
 
   function enableEditing() {
+    unhighlightAll();                                // token spans can't survive a caret
     $$(EDITABLE, deck).forEach(el => {
       if (el.querySelector(EDITABLE)) return;        // container, not a leaf
       el.setAttribute("contenteditable", "plaintext-only");
@@ -454,6 +456,7 @@
       el.removeAttribute("contenteditable");
       el.removeAttribute("spellcheck");
     });
+    highlightAll();
   }
 
   function toggleEdit(force) {
@@ -730,6 +733,106 @@
     }
   }
 
+  /* ---------------------------------------------------- syntax highlight */
+  // A ~60-line tokenizer instead of a highlighter library: decks must stay a
+  // single offline file, and a code slide is at most 14 lines. Highlighting
+  // is a VIEW of the <pre> — the plain text stays authoritative. It is
+  // stripped while editing (contenteditable would shred the spans) and
+  // flattened back to text on save, so a deck file never carries token markup.
+  const HL_KEYWORDS = {
+    js: "as async await break case catch class const continue debugger default delete do else export extends finally for from function get if import in instanceof let new of return set static super switch this throw try typeof var void while with yield",
+    ts: "abstract as async await break case catch class const continue declare default delete do else enum export extends finally for from function get if implements import in instanceof interface let namespace new of private protected public readonly return set static super switch this throw try type typeof var void while yield",
+    py: "and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield",
+    sh: "case do done elif else esac export fi for function if in local read return source then until while",
+    go: "break case chan const continue default defer else fallthrough for func go goto if import interface map package range return select struct switch type var",
+    rust: "as async await break const continue crate dyn else enum extern fn for if impl in let loop match mod move mut pub ref return static struct super trait type unsafe use where while",
+    sql: "select from where group by order having join left right inner outer full on as insert into values update set delete create table drop alter add index and or not null is limit offset distinct union case when then end",
+    css: "important from to and not only",
+    json: "",
+  };
+  const HL_LITERAL = /\b(?:true|false|null|undefined|None|True|False|nil|self|this)\b/;
+  const HL_HASH = /^(?:py|sh|yaml|yml|rb|toml|ini|conf)$/;
+
+  const hlCache = new Map();          // lang -> compiled regex
+  function hlRegex(lang) {
+    if (hlCache.has(lang)) return hlCache.get(lang);
+    const words = (HL_KEYWORDS[lang] ?? HL_KEYWORDS.js).trim().split(/\s+/).filter(Boolean);
+    const parts = [
+      ["com", HL_HASH.test(lang) ? /#[^\n]*/ : lang === "sql" ? /--[^\n]*|\/\*[\s\S]*?\*\// : /\/\/[^\n]*|\/\*[\s\S]*?\*\//],
+      ["key", lang === "json" ? /"(?:\\.|[^"\\])*"(?=\s*:)/ : /(?!)/],
+      ["str", /"""[\s\S]*?"""|'''[\s\S]*?'''|`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'/],
+      ["num", /#[0-9a-fA-F]{3,8}\b|\b0[xXbB][\da-fA-F]+\b|\b\d+(?:\.\d+)?(?:e[-+]?\d+)?(?:px|em|rem|%|s|ms|vh|vw)?\b/],
+      ["lit", HL_LITERAL],
+      ["kw", words.length ? new RegExp(`\\b(?:${words.join("|")})\\b`, "i") : /(?!)/],
+      ["fn", /\b[A-Za-z_$][\w$]*(?=\s*\()/],
+      ["punc", /[{}()[\];,.:=+\-*/%<>!&|?~^]+/],
+    ];
+    const re = new RegExp(parts.map(([n, r]) => `(?<${n}>${r.source})`).join("|"), "g");
+    hlCache.set(lang, re);
+    return re;
+  }
+
+  // walk a compiled regex over the source, wrapping each match, escaping the rest
+  function hlRun(src, re) {
+    let out = "", last = 0, m;
+    re.lastIndex = 0;
+    while ((m = re.exec(src))) {
+      if (m[0] === "") { re.lastIndex++; continue; }
+      out += escapeHtml(src.slice(last, m.index));
+      const g = Object.keys(m.groups).find(k => m.groups[k] !== undefined);
+      out += `<span class="tok tok--${g}">${escapeHtml(m[0])}</span>`;
+      last = m.index + m[0].length;
+    }
+    return out + escapeHtml(src.slice(last));
+  }
+
+  // markup needs a two-level pass: text outside tags is content, not code
+  const HL_TAG = /(?<str>"[^"]*"|'[^']*')|(?<tag>^<\/?[A-Za-z][\w:.-]*)|(?<attr>[A-Za-z_:][\w:.-]*(?=\s*=))|(?<punc>\/?>$|=)/g;
+  function hlMarkup(src) {
+    let out = "", last = 0, m;
+    const re = /<!--[\s\S]*?-->|<\/?[A-Za-z][^>]*>?|<\/?[A-Za-z][\w:.-]*>/g;
+    while ((m = re.exec(src))) {
+      out += escapeHtml(src.slice(last, m.index));
+      out += m[0].startsWith("<!--")
+        ? `<span class="tok tok--com">${escapeHtml(m[0])}</span>`
+        : hlRun(m[0], HL_TAG);
+      last = m.index + m[0].length;
+    }
+    return out + escapeHtml(src.slice(last));
+  }
+
+  function detectLang(src) {
+    if (/^\s*</.test(src) || /<\/[A-Za-z][\w:.-]*>/.test(src)) return "html";
+    if (/^\s*[{[]/.test(src) && /"[^"]*"\s*:/.test(src)) return "json";
+    if (/^\s*(?:def |class |import |from |@\w)/m.test(src) && /:\s*$/m.test(src)) return "py";
+    if (/^\s*(?:#!|\$ |sudo |apt |brew |npm |npx |yarn |pip |git |curl |cd |echo )/m.test(src)) return "sh";
+    if (/^\s*[.#@a-zA-Z\[][^\n{;]*\{[^}]*:/m.test(src) && !/=>|\bfunction\b/.test(src)) return "css";
+    if (/\bpackage\s+\w+|\bfunc\s+\w+\s*\(/.test(src)) return "go";
+    if (/\bfn\s+\w+\s*\(|\blet\s+mut\b/.test(src)) return "rust";
+    if (/^\s*select\b[\s\S]*\bfrom\b/i.test(src)) return "sql";
+    return "js";
+  }
+
+  // data-lang pins the language; data-lang="none" opts out entirely
+  function highlight(pre) {
+    if (editing || pre.isContentEditable) return;
+    const src = pre.textContent;
+    const lang = (pre.dataset.lang || detectLang(src)).toLowerCase();
+    if (lang === "none" || lang === "text" || !src.trim()) { unhighlight(pre); return; }
+    if (pre.dataset.hl === lang && pre.dataset.hlSrc === src) return;
+    pre.innerHTML = /^(?:html|xml|svg|vue|jsx?-markup)$/.test(lang) ? hlMarkup(src) : hlRun(src, hlRegex(lang));
+    pre.dataset.hl = lang;
+    pre.dataset.hlSrc = src;
+  }
+  function unhighlight(pre) {
+    if (!pre.dataset.hl) return;
+    pre.textContent = pre.textContent;
+    delete pre.dataset.hl;
+    delete pre.dataset.hlSrc;
+  }
+  const highlightAll = () => $$(".slide--code pre", deck).forEach(highlight);
+  const unhighlightAll = () => $$("pre[data-hl]", deck).forEach(unhighlight);
+
   // conservative compaction: strip comments, indentation and blank lines.
   // Line-interior whitespace is never touched, so CSS content strings and
   // JS template-literal HTML survive byte-meaningfully.
@@ -942,6 +1045,10 @@
     });
     root.querySelectorAll(".sticker, .pin").forEach(n => n.classList.remove("is-sel"));
     root.querySelectorAll("[data-grain]").forEach(n => n.removeAttribute("data-grain"));   // re-derived at boot
+    root.querySelectorAll("pre[data-hl]").forEach(p => {                                   // ditto: tokens are a view
+      p.textContent = p.textContent;
+      p.removeAttribute("data-hl"); p.removeAttribute("data-hl-src");
+    });
     if (inline) {
       await inlineAssets(root);
     } else {

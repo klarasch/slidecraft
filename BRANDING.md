@@ -60,6 +60,21 @@ leave them unset otherwise:
                  whose deck is meant to fill the window edge-to-edge, no card */
 ```
 
+Code slides highlight themselves from the accents above, so a brand normally needs nothing
+here. Override a single token only when the derived colour misses:
+
+```css
+--code-kw:   /* keywords and tags       — default: --accent */
+--code-str:  /* strings                 — default: --accent-2 toward --fg */
+--code-num:  /* numbers                 — default: --accent-2 */
+--code-lit:  /* true / false / null     — default: --accent-2 */
+--code-key:  /* JSON keys               — default: --accent toward --fg */
+--code-fn:   /* function names          — default: --fg toward --accent-2 */
+--code-attr: /* markup attribute names  — default: --accent toward --fg */
+--code-com:  /* comments                — default: --muted */
+--code-punc: /* brackets and operators  — default: --fg at ~52% */
+```
+
 ---
 
 ## 2. Fonts
