@@ -118,6 +118,7 @@ SKILL.md           the skill — modes, brief, generation procedure
 LAYOUTS.md         the markup contract Claude follows
 BRANDING.md        how to make it your company's
 CUSTOMIZING.md     bespoke graphics/animations/layouts that survive runtime updates
+UPDATING.md        taking an update: fork sync, re-install, refreshing existing decks
 deck.html          a generated deck — the ONLY file Claude writes per deck
 runtime.css        layout library + print styles   (fixed asset)
 runtime.js         nav, overview, edit, presenter, save   (fixed asset)

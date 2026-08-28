@@ -24,7 +24,7 @@ fi
 rm -rf dist/slaydy
 mkdir -p dist/slaydy
 
-cp SKILL.md LAYOUTS.md BRANDING.md CUSTOMIZING.md runtime.js runtime.css standalone.py dist/slaydy/
+cp SKILL.md LAYOUTS.md BRANDING.md CUSTOMIZING.md UPDATING.md runtime.js runtime.css standalone.py dist/slaydy/
 [ -f runtime.min.js ] && cp runtime.min.js runtime.min.css dist/slaydy/
 cp -R themes dist/slaydy/themes
 cp -R icons dist/slaydy/icons

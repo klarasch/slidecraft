@@ -18,6 +18,9 @@ themes/midnight|paper|mint.css (stock)          fonts/               your font f
 Taking an update = overwriting the left column with the new release. If the folder is a git
 clone, `git pull` does it. Nothing on the right is ever part of a release, so nothing merges.
 
+`UPDATING.md` has the mechanics: syncing a fork from upstream, re-installing the skill, and
+refreshing the runtime inside decks that already exist.
+
 ## What the runtime promises you
 
 The layout classes, text primitives, and `data-*` attributes documented in `LAYOUTS.md` are a
