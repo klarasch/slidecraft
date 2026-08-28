@@ -153,9 +153,43 @@ runtime and document it in `LAYOUTS.md`; never let a deck carry its own `<style>
 - Headless check: `Chrome --headless=new --dump-dom http://127.0.0.1:8765/deck.html | grep data-overflow`.
 - Model choice: runtime/layout/theme code → Sonnet, high effort; `SKILL.md` and layout-system
   taste calls → Opus; visual fix rounds → Sonnet, medium.
-- Remote: https://github.com/klarasch/slidecraft (private), branch `master` — repo rename to `slaydy` pending on GitHub.
+- Remote: https://github.com/klarasch/slaydy (public), branch `master`. Renamed from
+  `slidecraft` on 2026-08-28; GitHub redirects the old URL, but update any clone's origin.
 
-## 7. Prompt to start the next session
+## 7. Releasing a runtime change
+
+`runtime.js` and `runtime.css` are the only runtime files, and every deck ever generated
+carries a copy of them. A change here reaches decks written a year ago, so the bar is the
+contract in `CUSTOMIZING.md`: **releases add; they never rename, remove, or redefine.** A
+class or `data-*` that means one thing today means the same thing after the update.
+
+The procedure, in order:
+
+1. **Build it as a token or an attribute, not a special case.** A new knob is a CSS custom
+   property with a default, or a `data-*` read through `closest()` so it works on `<body>`
+   deck-wide and on one `<section>`. Both, if it could reasonably be either.
+2. **Declare it.** Per-slide options go through `declareOption()` — that buys boot-time typo
+   warnings and an Options-panel control for free. Anything the runtime derives rather than the
+   author writes gets `derived: true`, so it is stripped on save.
+3. **Keep the deck file authored-only.** Whatever the runtime renders — generated nodes, token
+   spans, resolved custom properties — is a view, not content. Generated DOM gets `data-gen`;
+   anything else needs an explicit line in `serialize()` that puts it back. The test is
+   mechanical: save the deck, diff it, and see nothing you did not type.
+4. **Verify in the browser, both directions.** A light theme and a dark one, edit mode on and
+   off (contenteditable shreds anything clever inside an editable element), then the save
+   round-trip and a single-file export from `standalone.py`.
+5. **Run `./build.sh`.** It regenerates `runtime.min.*`, which the exporters prefer over the
+   readable files. Committing a runtime change without it ships a stale runtime inside every
+   single-file export — the failure is silent and only shows up in the deliverable.
+6. **Document it where it is read.** `LAYOUTS.md` for anything the model may write,
+   `BRANDING.md` for anything a theme may override. A feature absent from both does not exist
+   as far as the next deck is concerned.
+7. **Commit, push, and let forks take it.** `UPDATING.md` is the recipe they follow; the commit
+   message is what tells them whether this release lets them delete an override.
+
+---
+
+## 8. Prompt to start the next session
 
 > I'm continuing work on `slaydy`, a Claude Code skill that generates editable branded
 > HTML slide decks. Read `HANDOFF.md`, then `SKILL.md` and `LAYOUTS.md` in this folder.

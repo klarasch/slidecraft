@@ -134,6 +134,14 @@ This repo is the dev source. `./build.sh` produces `dist/slaydy/` — the actual
 drop into `.claude/skills/` or install in Cowork — plus `dist/slaydy-skill.zip` to share.
 Demo deck, README, and HANDOFF stay out of the shipped skill.
 
+## Running your own copy
+
+Fork it, put your brand in `themes/<you>.css`, and keep taking updates: everything slaydy ships
+is replaceable, everything yours lives in files a release never touches. `CUSTOMIZING.md` draws
+that line; **`UPDATING.md` is the procedure** — syncing a fork, re-installing the skill, and
+refreshing the runtime inside decks that already exist (each deck folder carries its own copy).
+Changing the runtime rather than consuming it: `HANDOFF.md` §7.
+
 ## Known gaps (deliberate, v1)
 
 - No pptx export. HTML→pptx either loses the design or produces uneditable slide images.
