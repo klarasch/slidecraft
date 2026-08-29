@@ -9,50 +9,71 @@ touches. What follows is the mechanics, and the three places a copy hides.
 
 ---
 
-## 1. What actually needs replacing
+## 1. What a release owns
 
 ```
-runtime.js  runtime.css  runtime.min.js  runtime.min.css     the runtime
-SKILL.md  LAYOUTS.md  BRANDING.md  CUSTOMIZING.md            the instruction set
-standalone.py  build.sh  icons/  themes/{midnight,paper,mint}.css
+runtime.js  runtime.css  runtime.min.js  runtime.min.css     replaced
+SKILL.md  LAYOUTS.md  BRANDING.md  CUSTOMIZING.md            replaced
+UPDATING.md  standalone.py                                   replaced
+icons/                                                       added to, never pruned
+themes/{midnight,paper,mint}.css                             refreshed only if you kept them
+build.sh                                                     yours — read upstream's changes
 ```
 
 Everything else in a fork — your theme, your fonts, your logo, `custom.css`, `custom.js`,
-`themes/default`, your own icons — is yours, and no update touches it. If you have edited a
-file in the list above, that edit is the thing that will hurt; move it into the extension layer
-(`CUSTOMIZING.md`) before updating, not after.
+`themes/default`, your own icons — is yours, and no update touches it.
+
+Three of those lines are not "replaced" for a reason. A fork that **deleted** the stock themes
+deleted them on purpose, and an update is not the place to resurrect one. New **icons** are
+additive and land beside your own. And **`build.sh`** is genuinely fork-owned: it names the
+skill, names the dist folder, and often patches frontmatter on the way out — so upstream's
+changes to it are something to read, not something to apply.
+
+If you have edited anything on a **replaced** line, that edit is the thing that will hurt. Move
+it into the extension layer (`CUSTOMIZING.md`) before updating, not after. §2 stops and tells
+you when you haven't.
 
 ## 2. Update the fork
 
-**If the fork is a git clone of upstream** — one time:
+Keep an upstream checkout as a **sibling** of your fork:
 
 ```bash
-git remote add upstream https://github.com/klarasch/slaydy.git
+cd ~/Code && git clone https://github.com/klarasch/slaydy.git
 ```
 
-then, for each update:
+Your fork keeps its own history, its own remote, its own branches — nothing about it changes.
+What the sibling adds is *history*: a folder of files tells you what upstream has, a git
+checkout tells you what upstream **changed**, which is the difference between copying an update
+and understanding one.
+
+Then, from inside the fork:
 
 ```bash
-git fetch upstream && git merge upstream/master
+cd ~/Code/my-fork && git -C ~/Code/slaydy pull && ~/Code/slaydy/take-update.sh
 ```
 
-Conflicts should only appear in files from §1. That is the signal you edited something you
-were meant to override instead.
+The script lives upstream on purpose — it carries the §1 manifest, so it can never be out of
+date with the files it is copying. It copies; it never merges. What it adds over `cp`:
 
-**If the fork is a copy with no upstream remote** (a folder someone handed you — this is what
-`s1-slaydy` is today), copy the files in:
+- **It prints the log** since your last update, and says which commits let you *delete* code
+  from the fork. An update that only adds is an update half-taken.
+- **It refuses to overwrite a file you edited** — comparing against the version you last took,
+  not against upstream's HEAD, so an upstream change never looks like your edit. This is the
+  signal `git merge` gave you as a conflict, without the merge.
+- **It refuses to copy from a dirty upstream.** There is no commit to record, so the *next*
+  update would have nothing to diff against. (`--allow-dirty` if you must; the stamp then says
+  so.)
+- **It records what you took**, in `.slaydy-upstream`. Commit that file with the update — it is
+  what makes every bullet above work next time.
 
-```bash
-cd /path/to/your-fork && cp ~/Code/slaydy/{runtime.js,runtime.css,runtime.min.js,runtime.min.css,SKILL.md,LAYOUTS.md,BRANDING.md,CUSTOMIZING.md,standalone.py} .
-```
+First run has no stamp, so it can't tell your edits from upstream's changes: it lists what
+differs, you review, and `--first-run` records the baseline. Exact from then on.
 
-Worth doing once: `git remote add upstream …` and switching to the first form. A copy that can
-`git fetch` tells you *what* changed; a copy that can't leaves you diffing folders.
-
-**Then read the log.** `git log --oneline <last-update>..upstream/master` — the commits say
-what landed, and some of them let you *delete* code from your fork: an override you carry
-because upstream lacked a hook, a workaround upstream has now absorbed. An update that only
-adds is an update half-taken.
+**Why not `git merge upstream/master`?** It works only for a fork that was born as a clone. A
+fork that started as a folder someone handed you has no shared ancestor — the merge needs
+`--allow-unrelated-histories` and conflicts on essentially every file. And even where it works,
+a merge is the wrong verb for a system in which nothing is merged: every file is either wholly
+upstream's or wholly yours. Submodules and subtrees fail the same test.
 
 ## 3. Update the install
 
