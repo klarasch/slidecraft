@@ -84,6 +84,14 @@ Store the settled brief in `<head>`:
 **Set up the folder.** Create an output folder named from the topic in kebab-case
 (`q3-platform-review/`) next to the user's working files (in Cowork: inside the folder the user
 shared with you) — never inside this skill's folder.
+
+**On a chat surface (Claude desktop/web, no folder of the user's in play), put that folder in
+scratch space — `/tmp/slaydy/<slug>/` — not in the working directory.** Everything you create
+in the working directory is handed to the user as a file. The workspace is yours: `deck.html`,
+the runtime, the theme copies, the font. Handing those over is the failure mode this rule
+exists to prevent — the user gets `deck.html` alongside the export, opens the wrong one, and
+finds a deck that can't export itself. Build in `/tmp`, then write **only** the standalone into
+the working directory. One file reaches the user, every time.
 Copy in, byte for byte:
 
 - `runtime.js`
@@ -200,8 +208,9 @@ every shortcut, P makes a PDF. Edits live in that tab until you press D ("Downlo
 saves an updated copy of the file.
 ```
 
-When no folder outlives the session (chat), skip the Source line — the standalone is also the
-file revisions start from.
+When no folder outlives the session (chat), skip the Source line — the workspace is in `/tmp`
+and the standalone is the file revisions start from. Don't mention `/tmp`, `deck.html`, or the
+runtime; they are not the user's problem.
 
 ---
 
