@@ -226,15 +226,19 @@ body:not(.is-editing):not(.is-overview) .slide.is-active figure[data-kenburns] i
 /* atmospheric wash — one hairline of polish, purely decorative.
    z-index: -1 keeps it below in-flow content (headings, eyebrow) that has no
    z-index of its own — see .slide's `isolation: isolate`, which is what keeps
-   this from falling behind the slide's own background instead. */
+   this from falling behind the slide's own background instead.
+   --wash is a plain custom property, not a selector override: a theme sets
+   it directly (and its print counterpart, --wash-print, below) instead of
+   fighting this rule's specificity. Fallback here is the stock two-radial
+   screen wash, unchanged from before this was made themeable. */
 .slide__wash {
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background:
+  background: var(--wash,
     radial-gradient(90% 70% at 88% -12%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 62%),
-    radial-gradient(70% 60% at -8% 108%, color-mix(in oklab, var(--accent-2) 18%, transparent), transparent 60%);
+    radial-gradient(70% 60% at -8% 108%, color-mix(in oklab, var(--accent-2) 18%, transparent), transparent 60%));
   opacity: var(--wash-opacity, 1);
 }
 
@@ -1409,18 +1413,24 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
      that base into the stop (premultiplied sRGB). Each layer is confined via
      background-size/position to a non-overlapping band so the two opaque
      radials never stack on top of each other. */
+  /* Themeable via --wash-print, same contract as --wash on screen (base
+     rule, ~line 235): a theme sets the custom property, not a selector
+     override, so it never has to fight this rule's specificity the way a
+     downstream fork previously had to (carrying its own print-flatten copy
+     of this block just to swap the wash). Fallback is the stock flattened
+     wash, unchanged from before this was tokenized — folded into ONE
+     shorthand value per layer (gradient, position, size, repeat together)
+     so a theme's override doesn't also have to restate the separate
+     background-repeat/size/position declarations this rule used to carry. */
   .slide__wash {
     /* must mirror .slide's own `background: var(--slide-bg, var(--bg))`
        (line ~97) fallback-for-fallback, or the wash's bands won't fade to
        the color they're actually sitting on */
     --wash-base: var(--slide-bg, var(--bg));
+    background: var(--wash-print,
+      radial-gradient(90% 175% at 88% -30%, color-mix(in srgb, var(--accent) 22%, var(--wash-base)), var(--wash-base) 62%) top / 100% 40% no-repeat,
+      radial-gradient(70% 200% at -8% 126.67%, color-mix(in srgb, var(--accent-2) 18%, var(--wash-base)), var(--wash-base) 60%) bottom / 100% 30% no-repeat);
     background-color: var(--wash-base);
-    background-image:
-      radial-gradient(90% 175% at 88% -30%, color-mix(in srgb, var(--accent) 22%, var(--wash-base)), var(--wash-base) 62%),
-      radial-gradient(70% 200% at -8% 126.67%, color-mix(in srgb, var(--accent-2) 18%, var(--wash-base)), var(--wash-base) 60%);
-    background-repeat: no-repeat, no-repeat;
-    background-size: 100% 40%, 100% 30%;
-    background-position: top, bottom;
     opacity: 1;
   }
   /* .slide--section overrides its OWN background to fall back to --accent
@@ -1448,6 +1458,31 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
       0 0 0 5px rgba(8, 8, 8, 0.45);
   }
 
+  /* Audited, no override needed — each is a translucent layer with no
+     spatial variation (a uniform fill, or a crisp non-blurred box-shadow
+     ring, same shape as the pin ring above), which composites as a
+     constant-alpha vector fill rather than a rasterized gradient. Measured
+     directly against this file's own PDF output, with a real raster photo
+     substituted for every stock SVG image to rule out the image format
+     itself being what kept these vector: zero /PatternType 1 either way.
+       - .slide--timeline .step::before ring (base rule ~line 834) — solid
+         0-blur box-shadow, same construction as the pin ring.
+       - .callout__notes li::before marker (base rule ~line 641) — solid
+         fill + solid border, no gradient.
+       - .slide--callout-full .callout__box (base rule ~line 659) and
+         .slide--image .credit (base rule ~line 848) — uniform rgba/color-mix
+         fills; their backdrop-filter blur is print-inert (Chrome's print
+         path doesn't rasterize it), so no extra compositing gets triggered
+         beyond the flat fill either.
+     Two more items this task's brief named — a gallery "tile frame/
+     treatment" and a split-slide "media frame treatment" — don't exist as
+     CSS in this file: .slide--gallery tiles and .slide--split .split__media
+     carry no decoration beyond the shared .media rule (border-radius +
+     overflow: hidden, both opaque). A "quote mark" treatment likewise isn't
+     present — .slide--quote has no pseudo-element or background tied to the
+     mark glyph. Full-text search plus the same before/after PDF scan (SVG
+     and raster) turned up nothing to flatten for any of the three. */
+
   /* code panel: the blurred outer shadow (0 24px 60px -34px, base rule
      ~line 881) rasterizes into a full-page bitmap + soft mask per code
      slide — measured, it's the single largest offender in the deck. At
@@ -1464,6 +1499,81 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
   .slide--code pre {
     box-shadow: inset 0 1px 0 color-mix(in oklab, var(--fg) 6%, transparent);
   }
+
+  /* title bar + terminal ring (base rules ~line 885 and ~900): the title
+     bar's own fill is a UNIFORM color-mix(…, transparent) — a flat,
+     spatially-constant alpha, which composites as a constant-alpha fill and
+     already exports as a vector fill; measured, it contributes nothing to
+     the pattern count and needs no print override. The ring is three
+     radial-gradients whose stops fade through `transparent` — each one IS
+     spatially varying, and each rasterizes into its own tiling pattern
+     (confirmed: toggling the ring off alone dropped this slide's pattern
+     count from 3 to 0, the title bar and inset hairline both contributing
+     zero on their own). This chrome is new this release, so catch it now:
+     bake all three gradients against the backdrop the ring actually paints
+     over — not the pre's --surface directly, but the title bar's OWN fill
+     flattened onto --surface first, since the ring sits on top of the title
+     bar, not directly on the pre. Same identity as the wash, applied twice
+     in sequence because there are two translucent layers stacked here, each
+     with a known opaque backdrop once the one below it is resolved.
+     The three gradients can't just swap `transparent` for the opaque
+     backdrop in place, though: on screen each ring is drawn by its own
+     gradient LAYER that spans the pseudo's full 46×10 box (only the "at Npx
+     5px" offset moves where its circle sits within that shared box) — with
+     transparent stops that's invisible everywhere but the ring itself, so
+     the three layers show through each other. Baked opaque, the topmost
+     layer (first-listed — background layers stack first-on-top) would
+     paint its now-opaque "elsewhere" over the whole box and blot out the
+     other two rings entirely (caught by pixel-diffing this exact slide:
+     two of three rings vanished). Each gradient is confined to its own
+     18px-wide slot via background-position/size instead — same local
+     offset (5px, 5px) in every slot, since 18px spacing between ring
+     centers was already uniform — so the three opaque layers tile
+     side-by-side rather than stacking on top of one another. */
+  .slide--code pre::after {
+    --ring-bg: color-mix(in srgb, var(--fg) 4%, var(--surface));
+    --ring: color-mix(in srgb, var(--fg) 34%, var(--ring-bg));
+    background:
+      radial-gradient(circle at 5px 5px, var(--ring-bg) 0 2.6px, var(--ring) 2.6px 4.1px, var(--ring-bg) 4.3px) 0    0 / 18px 10px no-repeat,
+      radial-gradient(circle at 5px 5px, var(--ring-bg) 0 2.6px, var(--ring) 2.6px 4.1px, var(--ring-bg) 4.3px) 18px 0 / 18px 10px no-repeat,
+      radial-gradient(circle at 5px 5px, var(--ring-bg) 0 2.6px, var(--ring) 2.6px 4.1px, var(--ring-bg) 4.3px) 36px 0 / 18px 10px no-repeat;
+  }
+
+  /* full-bleed scrim (.slide--full .bleed::after, base rule ~line 740): a
+     translucent linear-gradient sitting directly on a photo, whose backdrop
+     varies per pixel — it can't be baked opaque the way the wash and the
+     code ring were. Ladder tried, in order, and the result of each:
+       1. Gutter clipping (oversize the pseudo past its clipping ancestor so
+          the BBox/XStep gutter falls outside the visible clip) — TESTED
+          AND FALSIFIED. .bleed clips its own ::after via its own `overflow:
+          hidden` (base rule ~line 385): the generating box and the clip are
+          the SAME box here, not a smaller child inside a bigger clipped
+          parent (unlike a gallery tile). Measured directly against this
+          file's exported PDF: with the pseudo's `inset` pushed to -4px and
+          separately to -40px !important, the pattern's own BBox/XStep in
+          the PDF objects stayed pinned to 960×540 / 962×542 either way —
+          Chrome sizes this pattern's BBox to the clipped/visible paint
+          region, not to the generating box, so oversizing it has no effect
+          on the object actually written. Reverted; nothing to keep here.
+       2. Inline-SVG data-URI in place of the CSS gradient — BLOCKED by the
+          theme contract, not attempted in the file. The scrim's tint has to
+          track var(--bg) (a theme sets it — see .slide's own `background:
+          var(--slide-bg, var(--bg))`, ~line 97), but an SVG loaded through
+          background-image: url(data:...) is rendered in "image mode",
+          isolated from the host document's cascade: currentColor inside it
+          resolves to black, not the host element's `color`. Verified
+          directly — a currentColor SVG rect painted black against a
+          differently-colored host in a standalone Chrome screenshot, not
+          the host's color. The only way around that is baking a literal
+          color into the data URI, which would silently paint the wrong
+          tint under any non-stock theme; rejected as a worse regression
+          than the seam it would fix.
+     Adopting rung 3: left translucent. One /PatternType 1 remains on the
+     full-bleed slide, BBox 960×540 == XStep-2/YStep-2 — the full slide, so
+     the 2pt gutter sits exactly at the page edge; whether that reads as a
+     seam depends on the viewer the same way the wash's did before it was
+     flattened. No CSS change on this rule — this is the runtime's one
+     accepted residual, and BRANDING.md's PDF section says so out loud. */
 
   /* speaker notes print under their slide only when ?notes is in the URL */
   body.show-notes .slide {
