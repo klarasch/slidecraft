@@ -999,6 +999,10 @@ body.is-editing .slide__placeholder-note:not(.has-note) { color: #cdbfff; }
   box-shadow: 0 16px 48px -8px rgba(0, 0, 0, .6);
   white-space: nowrap;
   transition: opacity .25s var(--ease), transform .25s var(--ease);
+  /* safety net at every width: the pill would rather scroll its own
+     contents than push past the viewport edge */
+  max-width: calc(100vw - 16px);
+  overflow-x: auto;
 }
 body.is-idle:not(.is-editing) .toolbar {
   opacity: 0; pointer-events: none;
@@ -1026,6 +1030,22 @@ html:fullscreen body.is-idle { cursor: none; }
   min-width: 66px; text-align: center; color: rgba(246, 245, 243, .7);
 }
 .tb-sep { width: 1px; height: 20px; background: rgba(255, 255, 255, .12); margin: 0 5px; }
+
+/* --- narrow viewports: the edit-mode bar is the widest (restart, prev,
+   counter, next, sep, add slide, dup, del, sep, options, request change,
+   speaker notes, sep, undo, save, sep, done — ~1010px of buttons+gaps+
+   padding at 13px/500 body type). Icon-collapse labelled buttons first;
+   tooltips (data-tip) still name every button, so nothing is lost. --- */
+@media (max-width: 1080px) {
+  .tb-btn:not(.icon-only) > span { display: none; }
+  .tb-btn:not(.icon-only) { width: 36px; padding: 0; justify-content: center; }
+  .tb-count { min-width: 52px; }
+}
+@media (max-width: 480px) {
+  .toolbar { padding: 4px; gap: 0; }
+  .tb-sep { margin: 0 2px; }
+  .tb-count { min-width: 40px; }
+}
 
 /* --- tooltips: replace native title="" on every bar button --- */
 .tip {
@@ -1081,7 +1101,7 @@ html:fullscreen body.is-idle { cursor: none; }
   border: 1px solid rgba(255, 255, 255, .12);
   backdrop-filter: blur(14px);
   color: #f6f5f3; font: 500 13px/1.4 var(--font-body);
-  max-width: 460px;
+  max-width: min(460px, calc(100vw - 24px));
   opacity: 0; transition: opacity .25s, transform .25s var(--ease);
 }
 .toast.is-shown { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
@@ -1099,7 +1119,7 @@ html:fullscreen body.is-idle { cursor: none; }
   position: fixed; transform: translateX(-50%);
   background: #15151b; border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 14px; box-shadow: 0 24px 60px -10px rgba(0, 0, 0, .7);
-  color: #f6f5f3; padding: 18px 18px 16px; width: 420px;
+  color: #f6f5f3; padding: 18px 18px 16px; width: min(420px, calc(100vw - 24px));
 }
 .pop h4 { margin: 0; font: 600 15px/1.2 var(--font-display); letter-spacing: -.01em; }
 .pop__sub { color: rgba(246, 245, 243, .5); font-size: 12.5px; margin: 4px 0 0; }
@@ -1164,7 +1184,7 @@ html:fullscreen body.is-idle { cursor: none; }
 
 /* --- speaker notes drawer --- */
 .drawer {
-  position: fixed; right: 0; top: 0; bottom: 84px; z-index: 46; width: 340px;
+  position: fixed; right: 0; top: 0; bottom: 84px; z-index: 46; width: min(340px, 100vw);
   background: #101015; border-left: 1px solid rgba(255, 255, 255, .1);
   border-radius: 0 0 0 14px;
   padding: 24px; display: flex; flex-direction: column; gap: 12px;
