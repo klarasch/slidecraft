@@ -102,6 +102,10 @@ html:fullscreen .deck { box-shadow: none; }
   flex-direction: column;
   opacity: 0;
   visibility: hidden;
+  /* establishes a stacking context so .slide__wash (z-index: -1) stays behind
+     this slide's own content without falling behind the slide's *background*
+     or bleeding under a sibling slide */
+  isolation: isolate;
 }
 
 .slide.is-active { opacity: 1; visibility: visible; transform: none; z-index: 2; }
@@ -219,10 +223,14 @@ body:not(.is-editing):not(.is-overview) .slide.is-active figure[data-kenburns] i
   figure[data-kenburns] img { animation: none !important; }
 }
 
-/* atmospheric wash — one hairline of polish, purely decorative */
+/* atmospheric wash — one hairline of polish, purely decorative.
+   z-index: -1 keeps it below in-flow content (headings, eyebrow) that has no
+   z-index of its own — see .slide's `isolation: isolate`, which is what keeps
+   this from falling behind the slide's own background instead. */
 .slide__wash {
   position: absolute;
   inset: 0;
+  z-index: -1;
   pointer-events: none;
   background:
     radial-gradient(90% 70% at 88% -12%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 62%),
@@ -1389,6 +1397,72 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
   * {
     animation: none !important; transition: none !important;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+
+  /* Vector shadings, not bitmaps: an OPAQUE gradient exports from Chrome's
+     print path as a native PDF shading; a translucent one gets rasterized
+     into a full-page bitmap + soft mask. The screen wash is two translucent
+     radial layers — cheap on screen, expensive in print (4 bitmaps/slide).
+     Rebuild it here as opaque layers that fade to the slide's own base color
+     instead of to transparent — same silhouette, since compositing a
+     translucent stop over an opaque base is visually identical to baking
+     that base into the stop (premultiplied sRGB). Each layer is confined via
+     background-size/position to a non-overlapping band so the two opaque
+     radials never stack on top of each other. */
+  .slide__wash {
+    /* must mirror .slide's own `background: var(--slide-bg, var(--bg))`
+       (line ~97) fallback-for-fallback, or the wash's bands won't fade to
+       the color they're actually sitting on */
+    --wash-base: var(--slide-bg, var(--bg));
+    background-color: var(--wash-base);
+    background-image:
+      radial-gradient(90% 175% at 88% -30%, color-mix(in srgb, var(--accent) 22%, var(--wash-base)), var(--wash-base) 62%),
+      radial-gradient(70% 200% at -8% 126.67%, color-mix(in srgb, var(--accent-2) 18%, var(--wash-base)), var(--wash-base) 60%);
+    background-repeat: no-repeat, no-repeat;
+    background-size: 100% 40%, 100% 30%;
+    background-position: top, bottom;
+    opacity: 1;
+  }
+  /* .slide--section overrides its OWN background to fall back to --accent
+     instead of --bg (line ~522) — the wash's base has to follow that same
+     override or its bands fade to the wrong color and the whole slide
+     visibly shifts hue. (Caught by pixel-diffing this exact slide type.) */
+  .slide--section .slide__wash {
+    --wash-base: var(--slide-bg, var(--accent));
+  }
+  /* .slide--section's `opacity: .25` (base rule, ~line 520) is a uniform
+     element-level alpha over an already-opaque gradient — measured: this
+     stays a vector group (a constant /ca alpha wrapping a shading), it does
+     NOT get rasterized the way a spatially-varying transparent-to-color
+     gradient stop does. No print override needed here. (.slide--placeholder
+     .slide__wash { display: none } already applies here — base rule, line
+     ~939 — no print override needed for that either.) */
+
+  /* pin ring: the blurred half of its box-shadow forces a transparency group
+     per pin in print. Preview.app then draws that group's bounding box as an
+     opaque square. Two crisp (non-blurred) rings read the same at slide size
+     and export as vector fills — no bitmap, no square. */
+  .media .pin {
+    box-shadow:
+      0 0 0 4px color-mix(in oklab, var(--accent) 30%, transparent),
+      0 0 0 5px rgba(8, 8, 8, 0.45);
+  }
+
+  /* code panel: the blurred outer shadow (0 24px 60px -34px, base rule
+     ~line 881) rasterizes into a full-page bitmap + soft mask per code
+     slide — measured, it's the single largest offender in the deck. At
+     slide scale that soft shadow reads as nothing under a code panel, so
+     drop it outright rather than crisping it into a ring (there's no edge
+     here that needs one, unlike the pin). The inset hairline is kept: it's
+     confined to the pre's own box (not blurred past its edge) and the pre
+     paints an opaque background, so it exports as a vector fill, not a
+     mask — measured separately, adding/removing it made no difference to
+     the bitmap count. Lower specificity than
+     `.slide--code pre[data-chrome="none"]` (line ~911, one extra attribute
+     selector), so that rule's `box-shadow: none` still wins there and this
+     doesn't resurrect a shadow on the chromeless variant. */
+  .slide--code pre {
+    box-shadow: inset 0 1px 0 color-mix(in oklab, var(--fg) 6%, transparent);
   }
 
   /* speaker notes print under their slide only when ?notes is in the URL */
