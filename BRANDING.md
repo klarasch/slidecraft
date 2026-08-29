@@ -100,6 +100,59 @@ here. Override a single token only when the derived colour misses:
 
 ---
 
+## 1b. Lean PDF export
+
+Exported decks go through Chrome's print path (`--print-to-pdf`, or the browser's own print
+dialog), and that path treats backgrounds very differently depending on one thing: alpha. An
+**opaque** gradient prints as a native PDF vector shading — free. A **translucent** gradient, or
+any background layer with alpha, gets rasterized into a full-page bitmap plus a soft mask — two
+image objects per layer, per slide. Linear vs. radial makes no difference; alpha is what costs.
+
+A few habits keep a themed deck's PDF small:
+
+- **Bake the surface colour into decorative gradients** so the bottom stop is opaque, instead of
+  fading to transparent: `color-mix(in srgb, var(--accent) 22%, <base>)` fading to `<base>`
+  composites identically to a 22%-alpha accent wash over that surface, but costs nothing to
+  print. One gradient layer per element, opaque at the bottom, is the rule.
+- **Draw hairlines as borders, not gradient layers.** A rule built as
+  `linear-gradient(...) / 1px 100%` becomes a 1×540 image stretched across the whole page — and
+  macOS Preview renders the stretch as a visible seam. A real border (on the element itself or
+  on `::before`/`::after`) is vector and has no seam.
+- **Use crisp rings, not blurred shadows, on anything meant to print.** A blurred `box-shadow`
+  forces Chrome to emit a transparency group per element — technically correct in the PDF, but
+  Preview draws the shadow's bounding box as an opaque square, and Preview is how most people
+  open an exported deck. Stack zero-blur layers instead:
+  `0 0 0 4px color-mix(in oklab, var(--accent) 30%, transparent), 0 0 0 5px rgba(8,8,8,.45)`.
+- **Strip baked-in noise or grain in `@media print`.** Texture rasterizes at print DPI into
+  megabytes of incompressible pixels per page; the runtime already drops its own grain there,
+  and a theme adding texture should do the same.
+- A scrim **over a photo** is free to leave translucent — the photo is already a bitmap. The
+  cost above is specifically translucency over a flat slide surface, paid on every slide that
+  has one.
+
+The runtime's own wash (`.slide__wash`) sits below content and prints as opaque vector layers
+baked against `--wash-base`, which defaults to `var(--slide-bg, var(--bg))`. A theme that gives
+some slides a different surface colour — a `.slide--section` fill, say — should re-point
+`--wash-base` to match, or the wash bakes against the wrong base.
+
+To check where a deck stands, count full-page bitmaps in the exported PDF:
+
+```bash
+python3 - deck.pdf <<'PY'
+import re,sys
+d=open(sys.argv[1],'rb').read()
+full=sum(1 for m in re.finditer(rb'<</Type\s*/XObject\s*/Subtype\s*/Image(.{0,300}?)>>\s*stream',d,re.S)
+         if (w:=re.search(rb'/Width (\d+)',m.group(1))) and int(w.group(1))>=900)
+print("full-page bitmaps:", full)
+PY
+```
+
+Zero is the target for a theme's own choices; the runtime's wash fix accounts for whatever's
+left. On a measured 23-slide fork, theme-side fixes alone took 228 full-page bitmaps down to
+~136; the runtime-side wash fix cleared the rest.
+
+---
+
 ## 2. Fonts
 
 Fonts are declared in `runtime.css` `:root` as `--font-display`, `--font-body`, `--font-serif`,
