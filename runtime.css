@@ -1396,7 +1396,7 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
    Print → PDF.  Chrome: Print, margins None, Background graphics ON.
    ========================================================================= */
 @media print {
-  @page { size: 13.333in 7.5in; margin: 0; }
+  @page { size: 1280px 720px; margin: 0; }   /* exact: 13.333in floors 100vw to 1279px, leaving a 1px white edge */
   html, body { overflow: visible; background: #fff; height: auto; }
   /* data-runtime="print" opts a chrome element into the PDF (it is still
      stripped from saves like any other [data-runtime] node) */
@@ -1419,7 +1419,7 @@ body.is-black::after { content: ""; position: fixed; inset: 0; background: #000;
      window must not emit a page with its content translated/faded away */
   .slide.is-entering > *, .slide.is-leaving > * { opacity: 1 !important; transform: none !important; }
   .slide:last-child { break-after: auto; page-break-after: auto; }
-  /* Chrome honours the @page size above (page box = 1280px wide → slide prints 1:1). Safari ignores
+  /* Chrome honours the @page size above (page box = 1280px wide → calc() is exactly 1, slide prints 1:1). Safari ignores
      @page size and prints on whatever paper the dialog says, so scale the slide to the page width.
      The calc() form is exact wherever unit division is supported; the two fixed values are the
      fallback for older engines (portrait paper ≈ 800px, landscape ≈ 1100px). */

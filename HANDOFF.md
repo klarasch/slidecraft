@@ -35,8 +35,10 @@ fall back to conservative compaction (comments/indent/blank lines only — line-
 whitespace is never touched, protecting CSS content strings and JS template HTML).
 `runtime.min.*` are generated artifacts — always rebuild after touching runtime files.
 A no-JS fallback in runtime.css shows the fitted title slide before boot / in Quick Look.
-PDF export: `@page 13.333in 7.5in` verified correct (headless print = 960×540pt, notes
-variant included); a "with/without speaker notes" chooser popover fronts `print()` when notes
+PDF export: `@page 1280px 720px` verified correct (headless print = 960×540pt, notes
+variant included; must stay an exact pixel size — 13.333in floors 100vw to 1279px, which
+skews the `zoom: calc(100vw / 1280px)` rule and leaves a 1px white left/bottom edge);
+a "with/without speaker notes" chooser popover fronts `print()` when notes
 exist (`show-notes` class, cleared on afterprint unless `?notes`). Known observation: the demo's
 mesh-gradient SVGs rasterize huge in Chrome's PDF pipeline (~56 MB) — revisit if real decks hit it.
 Standalone decks re-save and re-export themselves without fetch. The
