@@ -526,9 +526,15 @@
     editing ? enableEditing() : disableEditing();
     if (editing) renderNotesDrawer(); else { commitNotes(); closeNotesDrawer(); }
     if (!editing) { closePopover(); closePicker(); }
-    toast(editing
-      ? `Edit mode — click any text to change it. ${KEY.cmd}V pastes an image onto the slide.`
-      : "Edit mode off");
+    if (editing) {
+      toast(`Edit mode — click any text to change it. ${KEY.cmd}V pastes an image onto the slide.`);
+    } else if (document.documentElement.hasAttribute("data-standalone") && dirty && !dirHandle) {
+      // standalone + unsaved + no folder handle: the edits only exist in this
+      // tab. Replaces the plain "Edit mode off" toast — never both.
+      toast("Your edits live only in this tab — Download copy saves an updated file.", { key: "D" });
+    } else {
+      toast("Edit mode off");
+    }
   }
 
   /* -------------------------------------------------------------- images */

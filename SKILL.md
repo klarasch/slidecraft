@@ -186,12 +186,18 @@ diffs small, and picks up runtime fixes — but the user never needs to open it,
 assets yourself** — the script exists so base64 never enters your context. If `python3` is
 genuinely unavailable, say so and point at the deck's **Download copy** toolbar button instead.
 
-**Hand off in four lines, no more.**
+**Hand off in four lines, no more.** The last line is the deck's tl;dr, not a bare key list —
+in 2–4 sentences, adapted to your own phrasing: it opens in any browser and stays editable;
+press E (or click Edit) to change any text, ? shows every shortcut, P makes a PDF; edits live
+only in that browser tab until they press D — "Download copy" — which saves an updated copy of
+the file.
 
 ```
 Deck: ./q3-platform-review/Q3 Platform Review.html — 18 slides, one file. Open it (Chrome), send it as is.
 Source: ./q3-platform-review/deck.html — I edit this for revisions; you don't need to open it.
-Keys: → ← navigate · E edit · O overview · S presenter · P PDF · F fullscreen.
+It opens in any browser and stays editable — press E (or click Edit) to change any text, ? shows
+every shortcut, P makes a PDF. Edits live in that tab until you press D ("Download copy"), which
+saves an updated copy of the file.
 ```
 
 When no folder outlives the session (chat), skip the Source line — the standalone is also the
