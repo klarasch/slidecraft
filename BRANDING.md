@@ -100,42 +100,70 @@ here. Override a single token only when the derived colour misses:
 
 ---
 
-## 1b. Lean PDF export
+## 1b. PDF export: seams, not weight
 
 Exported decks go through Chrome's print path (`--print-to-pdf`, or the browser's own print
-dialog), and that path treats backgrounds very differently depending on one thing: alpha. An
-**opaque** gradient prints as a native PDF vector shading — free. A **translucent** gradient, or
-any background layer with alpha, gets rasterized into a full-page bitmap plus a soft mask — two
-image objects per layer, per slide. Linear vs. radial makes no difference; alpha is what costs.
+dialog), and a translucent gradient there is not a diet problem — it's a rendering bug. Chrome
+emits it as a `/PatternType 1` tiling pattern wrapping a rasterized bitmap, and the pattern's
+`XStep`/`YStep` are exactly 2pt larger than the tile's own `BBox` — a dead gutter baked into the
+object. macOS Preview, which is how most recipients open an exported deck, paints that gutter as
+a seam line that comes and goes as you scroll, because the visible edge depends on zoom-level
+sub-pixel geometry. An **opaque** gradient, by contrast, is a `/PatternType 2` vector shading —
+free to print and seamless in every viewer. So the old framing was backwards: "keep it lean"
+reads as an optimisation you can defer; a seam is a bug you ship.
 
-A few habits keep a themed deck's PDF small:
+**A uniform-alpha fill is not the problem.** A flat `rgba()` or `color-mix(...transparent)`
+background — translucent, but the same alpha everywhere — composites as a constant-alpha vector
+fill, no pattern, no seam, even sitting over a photo. It's specifically a gradient whose alpha
+*varies across the element* that rasterizes. In practice: a flat scrim over a photo is free to
+leave translucent; a scrim that fades is what seams.
 
-- **Bake the surface colour into decorative gradients** so the bottom stop is opaque, instead of
-  fading to transparent: `color-mix(in srgb, var(--accent) 22%, <base>)` fading to `<base>`
-  composites identically to a 22%-alpha accent wash over that surface, but costs nothing to
-  print. One gradient layer per element, opaque at the bottom, is the rule.
-- **Draw hairlines as borders, not gradient layers.** A rule built as
-  `linear-gradient(...) / 1px 100%` becomes a 1×540 image stretched across the whole page — and
-  macOS Preview renders the stretch as a visible seam. A real border (on the element itself or
-  on `::before`/`::after`) is vector and has no seam.
-- **Use crisp rings, not blurred shadows, on anything meant to print.** A blurred `box-shadow`
-  forces Chrome to emit a transparency group per element — technically correct in the PDF, but
-  Preview draws the shadow's bounding box as an opaque square, and Preview is how most people
-  open an exported deck. Stack zero-blur layers instead:
-  `0 0 0 4px color-mix(in oklab, var(--accent) 30%, transparent), 0 0 0 5px rgba(8,8,8,.45)`.
-- **Strip baked-in noise or grain in `@media print`.** Texture rasterizes at print DPI into
-  megabytes of incompressible pixels per page; the runtime already drops its own grain there,
-  and a theme adding texture should do the same.
-- A scrim **over a photo** is free to leave translucent — the photo is already a bitmap. The
-  cost above is specifically translucency over a flat slide surface, paid on every slide that
-  has one.
+**The flatten recipe, and its hard limit.** For a translucent gradient over an opaque,
+runtime-known surface, bake the surface into the stops instead of fading to transparent:
+`color-mix(in srgb, C X%, <base>)` fading to `<base>` composites identically to X%-alpha `C` over
+that base, and prints as vector. The catch is that this only works when layers don't overlap —
+an opaque final stop covers everything beneath it, so if a second translucent layer sits on top,
+flattening the first one no longer matches what the eye sees. Measured on an overlapping 4-layer
+hero graphic: flattening changed 72% of subpixels against the un-flattened render — reverted. If
+your art is stacked translucent layers, flattening isn't hard, it's impossible; the way out is
+redrawing with fewer or non-overlapping layers, or pre-rendering the art as a single asset. The
+pre-render route has its own caveat: an SVG loaded as a CSS `background-image` is cascade-isolated
+— `currentColor` and CSS custom properties inside it don't resolve against the host page — so a
+pre-rendered asset can't track theme tokens. It has to be baked once per theme, not written once
+against `var(--accent)`.
 
-The runtime's own wash (`.slide__wash`) sits below content and prints as opaque vector layers
-baked against `--wash-base`, which defaults to `var(--slide-bg, var(--bg))`. A theme that gives
-some slides a different surface colour — a `.slide--section` fill, say — should re-point
-`--wash-base` to match, or the wash bakes against the wrong base.
+**The wash token contract.** The runtime's own wash paints `background: var(--wash, <stock>)` on
+screen and `background: var(--wash-print, <stock, already flattened>)` in print, against a
+`--wash-base` that defaults to `var(--slide-bg, var(--bg))` and is re-pointed on
+`.slide--section`. A theme that replaces the wash sets `--wash`, same as always, and should set
+`--wash-print` alongside it to a flattened equivalent — the shorthand can carry per-layer
+`position / size repeat` if the wash isn't a single layer. No selector overrides, no fighting
+upstream's print block. The same discipline generalizes past the wash: any decorative gradient a
+theme adds should ship its own print variant in the theme's `@media print` block, not rely on
+inheriting the runtime's.
 
-To check where a deck stands, count full-page bitmaps in the exported PDF:
+**Upstream's own ledger, honestly.** After the wash fix, the runtime's remaining
+`/PatternType 1` count on the demo deck is exactly one: the full-bleed slide's fading scrim over
+its photo. Both escape hatches were tried and both failed — oversizing the layer doesn't move the
+pattern's `BBox`, because Chrome sizes it to the clipped/visible paint region, not the generating
+box; and an SVG swap can't track `var(--bg)` for the reason above. It stays translucent, and it's
+documented in the runtime source at the rule that emits it. Expect the same residual on any
+full-bleed-style slide you add, and know that a fading scrim you add elsewhere will seam the same
+way — where the design can tolerate it, a uniform-alpha scrim (see above) sidesteps the defect
+entirely instead of trading it off.
+
+**Measure honestly.** `pdfimages -list` does not descend into pattern content streams — it
+reported 38 images on a file that actually contains 296 image XObjects once the patterns are
+counted. Don't trust it for this. Two commands do tell the truth, run against a Chrome
+`--headless --print-to-pdf` export:
+
+```bash
+grep -c '/PatternType 1' deck.pdf
+```
+
+Zero is the target. If it reports 0 on a file you expect to be dirty, the pattern objects are
+sitting in a compressed stream — decompress first (`pikepdf --qdf` or equivalent) and re-count.
+The other check, for full-page bitmaps specifically, still holds:
 
 ```bash
 python3 - deck.pdf <<'PY'
@@ -147,9 +175,20 @@ print("full-page bitmaps:", full)
 PY
 ```
 
-Zero is the target for a theme's own choices; the runtime's wash fix accounts for whatever's
-left. On a measured 23-slide fork, theme-side fixes alone took 228 full-page bitmaps down to
-~136; the runtime-side wash fix cleared the rest.
+A few habits from the old measured passes still hold, and are cheaper to just follow than to
+re-derive:
+
+- **Draw hairlines as borders, not gradient layers.** A rule built as
+  `linear-gradient(...) / 1px 100%` becomes a 1×540 image stretched across the whole page, and
+  Preview renders the stretch as a visible seam. A real border (on the element itself or on
+  `::before`/`::after`) is vector and has no seam.
+- **Use crisp rings, not blurred shadows, on anything meant to print.** A blurred `box-shadow`
+  forces Chrome to emit a transparency group per element, and Preview draws the shadow's
+  bounding box as an opaque square over whatever's underneath. Stack zero-blur layers instead:
+  `0 0 0 4px color-mix(in oklab, var(--accent) 30%, transparent), 0 0 0 5px rgba(8,8,8,.45)`.
+- **Strip baked-in noise or grain in `@media print`.** Texture rasterizes at print DPI into
+  megabytes of incompressible pixels per page; the runtime already drops its own grain, pins,
+  and code-chrome there, and a theme adding texture should do the same.
 
 ---
 

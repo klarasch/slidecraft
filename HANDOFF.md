@@ -184,7 +184,13 @@ The procedure, in order:
 6. **Document it where it is read.** `LAYOUTS.md` for anything the model may write,
    `BRANDING.md` for anything a theme may override. A feature absent from both does not exist
    as far as the next deck is concerned.
-7. **Commit, push, and let forks take it.** `UPDATING.md` is the recipe they follow; the commit
+7. **Before shipping anything that paints translucent, export and count.** Export the demo deck
+   to PDF and count `/PatternType 1` (`grep -c '/PatternType 1' deck.pdf` — see BRANDING.md
+   §1b for why `pdfimages -list` lies). A new spatially-varying translucent gradient must either
+   be flattened in the print block or documented in place as an accepted residual. This
+   release's code panel is the cautionary example: the terminal-ring chrome shipped translucent
+   and had to be caught after the fact.
+8. **Commit, push, and let forks take it.** `UPDATING.md` is the recipe they follow; the commit
    message is what tells them whether this release lets them delete an override.
 
 ---

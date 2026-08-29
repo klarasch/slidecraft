@@ -39,8 +39,9 @@ See `BRANDING.md`. This is the right tool for "make it look like us".
 A theme file is a full stylesheet loaded **after** `runtime.css`, so it may contain any CSS,
 not just the nine variables: a patterned `.slide__wash`, a different `.slide--section`
 treatment, SVG background art as data-URIs, extra `@keyframes`. Any background layer added this
-way costs something at export time if it isn't opaque — see BRANDING.md's "Lean PDF export" for
-the cost model and the fixes. Two rules keep it update-safe:
+way that fades — alpha varying across the element — prints with a seam in most PDF viewers
+unless it ships a flattened print variant; see BRANDING.md's "PDF export: seams, not weight" for
+the mechanism and the fixes. Two rules keep it update-safe:
 
 - **Override, don't fork.** Restyle the runtime's selectors from your theme; never copy a block
   out of `runtime.css` and edit it there.
