@@ -19,6 +19,13 @@
   const W = 1280, H = 720;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  // a document loaded via srcdoc (Claude's artifact preview, some embeds)
+  // resolves "#n" against the parent frame's URL while document.URL stays
+  // "about:srcdoc" — Chrome then rejects the state object as cross-origin.
+  // Hash routing is a nicety there, not a requirement, so just skip it.
+  function replaceHash(hash) {
+    try { history.replaceState(null, "", hash); } catch {}
+  }
 
   /* ------------------------------------------------------ markup repair */
   // the runtime is the fixed asset; generated markup varies. Silently fix
@@ -341,7 +348,7 @@
     }
 
     updateCount();
-    if (push) history.replaceState(null, "", "#" + (index + 1));
+    if (push) replaceHash("#" + (index + 1));
     if (editing) { enableEditing(); renderNotesDrawer(); }
     measureOverflow(cur);
     syncState();
@@ -425,7 +432,7 @@
     decorate();                        // refreshes `slides` + page numbers
     index = slides.indexOf(cur);       // current slide may have shifted
     updateCount();
-    history.replaceState(null, "", "#" + (index + 1));
+    replaceHash("#" + (index + 1));
     ovSelected = to;
     buildOverview();
     requestAnimationFrame(() => ovThumbs()[ovSelected]?.scrollIntoView({ block: "nearest" }));
