@@ -28,6 +28,7 @@ write two sentences, use a `<b>` tag for a division, or let the whitespace do th
 | `.caption` | mono footnote | 13px |
 | `.serif` | switch to the display serif (quotes) | — |
 | `.accent` / `.dim` | colour a `<span>` | — |
+| `<strong>` | emphasis — accent-coloured in titles (`.display`/`.h1`/`.h2`/`.h3`, already 600 so weight would do nothing), semibold (600) in body text. Context decides rendering, one tag. In edit mode, ⌘B toggles it on the selection. `.accent` still applies explicit color regardless of context — reach for `<strong>` for "this word matters," `.accent` for "this word is this color" | — |
 | `.chip` | pill-shaped tag | 13px |
 | `.stack .stack--sm/md/lg` | vertical flow with gap | — |
 | `<code>` | inline mono | — |

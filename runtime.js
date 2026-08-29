@@ -1387,6 +1387,140 @@
                : fRect.bottom - rect.bottom < rect.height * .5;
   }
 
+  // find the nearest <strong> ancestor of `node`, stopping at `leaf` — used
+  // to test whether a selection endpoint already sits inside emphasis
+  function closestStrongWithin(node, leaf) {
+    let n = node.nodeType === 1 ? node : node.parentElement;
+    while (n && n !== leaf) {
+      if (n.tagName === "STRONG") return n;
+      n = n.parentElement;
+    }
+    return null;
+  }
+
+  // un-nest: a <strong> that lands fully or partially inside `frag` (from
+  // Range#extractContents, which already splits boundary elements) gets
+  // replaced by its children — emphasis never nests
+  function stripStrongs(root) {
+    root.querySelectorAll("strong").forEach(s => {
+      const p = s.parentNode;
+      while (s.firstChild) p.insertBefore(s.firstChild, s);
+      p.removeChild(s);
+    });
+  }
+
+  function pruneEmptyStrongs(el) {
+    $$("strong", el).forEach(s => { if (!s.textContent) s.remove(); });
+  }
+
+  // wrap `range` in a fresh <strong>, absorbing any strong siblings it now
+  // touches so two adjacent emphasis runs collapse into one element
+  function wrapStrong(range) {
+    const frag = range.extractContents();
+    stripStrongs(frag);
+    let strong = document.createElement("strong");
+    strong.appendChild(frag);
+    range.insertNode(strong);
+    const prev = strong.previousSibling;
+    if (prev?.nodeType === 1 && prev.tagName === "STRONG") {
+      while (strong.firstChild) prev.appendChild(strong.firstChild);
+      strong.remove();
+      strong = prev;
+    }
+    const next = strong.nextSibling;
+    if (next?.nodeType === 1 && next.tagName === "STRONG") {
+      while (next.firstChild) strong.appendChild(next.firstChild);
+      next.remove();
+    }
+    return strong;
+  }
+
+  // remove `strong`, splitting it so any part of it outside `range` stays
+  // emphasised — the part inside `range` is what the selection asked to unbold
+  function unwrapStrong(strong, range) {
+    const parent = strong.parentNode;
+    const beforeRange = document.createRange();
+    beforeRange.setStart(strong, 0);
+    beforeRange.setEnd(range.startContainer, range.startOffset);
+    const beforeFrag = beforeRange.extractContents();
+    const afterRange = document.createRange();
+    afterRange.setStart(range.endContainer, range.endOffset);
+    afterRange.setEnd(strong, strong.childNodes.length);
+    const afterFrag = afterRange.extractContents();
+
+    if (beforeFrag.hasChildNodes()) {
+      const beforeStrong = document.createElement("strong");
+      beforeStrong.appendChild(beforeFrag);
+      parent.insertBefore(beforeStrong, strong);
+    }
+    // empty text-node markers bracket the unwrapped run so the selection
+    // can be rebuilt around it once the strong tag is gone
+    const selStart = document.createTextNode("");
+    parent.insertBefore(selStart, strong);
+    while (strong.firstChild) parent.insertBefore(strong.firstChild, strong);
+    const selEnd = document.createTextNode("");
+    parent.insertBefore(selEnd, strong);
+    const afterAnchor = strong.nextSibling;
+    parent.removeChild(strong);
+    if (afterFrag.hasChildNodes()) {
+      const afterStrong = document.createElement("strong");
+      afterStrong.appendChild(afterFrag);
+      parent.insertBefore(afterStrong, afterAnchor);
+    }
+    return { selStart, selEnd };
+  }
+
+  // ⌘A selects at the element level, leaving both endpoints outside any
+  // strong — if the range still holds exactly one emphasis run (and nothing
+  // else), the intent is to unwrap it, not re-wrap what's already emphasised
+  function soleStrongIn(range, el) {
+    let sole = null;
+    for (const n of range.cloneContents().childNodes) {
+      if (n.nodeType === 3 && !n.textContent) continue;
+      if (n.nodeType === 1 && n.tagName === "STRONG" && !sole) { sole = n; continue; }
+      return null;
+    }
+    return sole ? $$("strong", el).find(s => range.intersectsNode(s)) || null : null;
+  }
+
+  // ⌘/Ctrl+B: toggle <strong> emphasis on the current selection. One leaf
+  // only — a selection crossing leaves, or collapsed to a caret, is a no-op.
+  function toggleEmphasis(el) {
+    const sel = getSelection();
+    if (!sel.rangeCount || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    if (!el.contains(range.startContainer) || !el.contains(range.endContainer)) return;
+
+    snapshot();
+
+    const startStrong = closestStrongWithin(range.startContainer, el);
+    const endStrong = closestStrongWithin(range.endContainer, el);
+    const target = startStrong && startStrong === endStrong
+      ? startStrong : soleStrongIn(range, el);
+
+    if (target) {
+      const { selStart, selEnd } = unwrapStrong(target, range);
+      pruneEmptyStrongs(el);
+      // set the selection around the markers BEFORE normalizing — normalize()
+      // is spec'd to keep live ranges valid through the merges/removals it does
+      const newRange = document.createRange();
+      newRange.setStartAfter(selStart);
+      newRange.setEndBefore(selEnd);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      el.normalize();
+    } else {
+      const strong = wrapStrong(range);
+      pruneEmptyStrongs(el);
+      el.normalize();
+      const newRange = document.createRange();
+      newRange.selectNodeContents(strong);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    }
+    measureOverflow(slides[index]);
+  }
+
   function initBulletEditing() {
     deck.addEventListener("keydown", e => {
       if (!editing) return;
@@ -1396,6 +1530,13 @@
       const notesOl = tag === "LI" ? el.closest(".callout__notes") : null;
       // any list in any layout — compare columns, agenda, bullets alike
       const listEl = tag === "LI" && !notesOl ? el.closest("ul, ol") : null;
+
+      // ⌘/Ctrl+B: emphasis toggle — see toggleEmphasis for the wrap/unwrap logic
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleEmphasis(el);
+        return;
+      }
 
       // Shift+Enter: a line break within the element, in any editable leaf.
       // plaintext-only blocks insertHTML, so place the <br> via the range API
@@ -1568,6 +1709,7 @@
     [`${KEY.cmd}Z`, "Undo"], [`${KEY.cmd}${KEY.shift}Z`, "Redo"], [`${KEY.cmd}D`, "Duplicate slide"], [KEY.del, "Delete selected sticker"],
     ["[ / ]", "Layer selected sticker"], ["Arrows", `Nudge selected sticker / pin (${KEY.shift} = bigger)`],
     ["Tab", "Next text box on the slide"], ["↑ / ↓", "At text edge: jump to text above / below"],
+    [`${KEY.cmd}B`, "Emphasise selection (edit mode)"],
     [`${KEY.alt}↑ / ${KEY.alt}↓`, "Move list item up / down"],
     ["Enter", "New list item"], [`${KEY.shift}Enter`, "Line break"], ["Backspace", "Delete empty item / element"],
     ["2×click image", "Add a pin (callout slide)"],

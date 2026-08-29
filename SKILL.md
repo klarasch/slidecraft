@@ -343,3 +343,5 @@ file. Read it before writing a theme.
   `.meta` line, eyebrow, chip or caption. The middle dot in particular is the loudest tell
   that a deck was machine-written. `.meta` holds bare `<span>`s; the runtime draws the
   divider (`data-sep`, see `LAYOUTS.md`).
+- For emphasis, use `<strong>` — not an ad-hoc `<span style>` or a stray `<b>`. It renders
+  accent-coloured in titles and semibold in body text automatically (see `LAYOUTS.md`).

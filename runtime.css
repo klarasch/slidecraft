@@ -362,6 +362,19 @@ code {
 .accent { color: var(--accent); }
 .dim { color: var(--muted); }
 
+/* <strong> emphasis (⌘B in edit mode): context decides rendering, one
+   toggle. Body scale gets weight — 600 matches the deck's own semibold,
+   stated explicitly rather than trusting the UA default of 700. Title
+   scale is already heavy (600) so weight would do nothing; accent color
+   carries the emphasis there instead. .accent stays the explicit color
+   primitive regardless of context. */
+strong { font-weight: 600; }
+h1 strong, h2 strong, h3 strong,
+.display strong, .h1 strong, .h2 strong, .h3 strong {
+  font-weight: inherit;
+  color: var(--accent);
+}
+
 .stack { display: flex; flex-direction: column; }
 .stack--xs { gap: 8px; }
 .stack--sm { gap: 16px; }
