@@ -27,6 +27,7 @@ from urllib.parse import unquote_to_bytes
 mimetypes.add_type("image/svg+xml", ".svg")
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("font/woff", ".woff")
+mimetypes.add_type("image/avif", ".avif")  # only in the stdlib map from 3.9
 
 
 def min_css(t: str) -> str:
