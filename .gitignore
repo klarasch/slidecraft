@@ -1,2 +1,5 @@
 .DS_Store
 dist/
+
+# standalone export of the demo deck — rebuild with: python3 standalone.py deck.html
+/Slaydy.html
