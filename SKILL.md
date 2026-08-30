@@ -209,8 +209,10 @@ saves an updated copy of the file.
 ```
 
 When no folder outlives the session (chat), skip the Source line — the workspace is in `/tmp`
-and the standalone is the file revisions start from. Don't mention `/tmp`, `deck.html`, or the
-runtime; they are not the user's problem.
+and the standalone is the file revisions start from. Don't mention `/tmp`, `deck.html`, the
+runtime, or any internal path — not even to explain how a later revision would work. If it's
+worth telling the user anything about revisions, say only that they can come back and ask for
+changes; never name or describe the file that makes it possible.
 
 ---
 
