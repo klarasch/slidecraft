@@ -1090,7 +1090,12 @@
       hint: "Divider drawn between meta items. Deck-wide default lives on <body>.",
       onchange: s => $$(".meta", s).forEach(ensureSeparators) },
     { name: "data-list", label: "List style", values: ["numbers", "dots", "square", "dash", "chevron", "none"],
-      when: s => hasOwn(s, LIST_SELECTOR),
+      // ...and not when every item already carries a glyph: on the bullets
+      // layout a glyph replaces that item's marker outright
+      // (.slide--bullets li:has(> .glyph)::before { content: none }), so the
+      // picker would be choosing between markers nothing renders.
+      when: s => outside($$(LIST_SELECTOR, s)).some(li =>
+        !(li.closest(".slide--bullets") && li.querySelector(":scope > .glyph"))),
       hint: "Marker style for this slide's lists. Default is the layout's own — numbers for the list layout, a dash in compare columns.",
       onchange: ensureListMarkers },
     { name: "data-crop", on: "media", label: "Crop", values: ["cover", "contain"],
