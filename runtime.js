@@ -1551,9 +1551,15 @@
         return;
       }
 
-      // Shift+Enter: a line break within the element, in any editable leaf.
+      // A line break within the element, in any editable leaf. Shift+Enter is
+      // the documented gesture; plain Enter lands here too once no list is
+      // waiting for it (a <pre> keeps its own newlines) — the browser would
+      // otherwise insert a bare "\n", which renders while plaintext-only puts
+      // white-space: pre-wrap on the element and silently collapses the moment
+      // editing stops, so the break would vanish on save.
       // plaintext-only blocks insertHTML, so place the <br> via the range API
-      if (e.key === "Enter" && e.shiftKey) {
+      if (e.key === "Enter" &&
+          (e.shiftKey || (!listEl && !notesOl && tag !== "PRE"))) {
         e.preventDefault();
         const sel = getSelection();
         if (!sel.rangeCount) return;
@@ -1724,7 +1730,8 @@
     ["Tab", "Next text box on the slide"], ["↑ / ↓", "At text edge: jump to text above / below"],
     [`${KEY.cmd}B`, "Emphasise selection (edit mode)"],
     [`${KEY.alt}↑ / ${KEY.alt}↓`, "Move list item up / down"],
-    ["Enter", "New list item"], [`${KEY.shift}Enter`, "Line break"], ["Backspace", "Delete empty item / element"],
+    ["Enter", "New list item — or a line break outside a list"],
+    [`${KEY.shift}Enter`, "Line break"], ["Backspace", "Delete empty item / element"],
     ["2×click image", "Add a pin (callout slide)"],
   ];
 
