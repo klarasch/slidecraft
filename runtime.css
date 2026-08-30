@@ -289,7 +289,10 @@ body:not(.is-editing):not(.is-overview) .slide.is-active figure[data-kenburns] i
 .slide--stats .stat .glyph { width: 24px; height: 24px; }
 .slide--compare .col .glyph { width: 22px; height: 22px; }
 /* bullets: a glyph in the marker column replaces that item's counter/dot */
-.slide--bullets li > .glyph { width: 21px; height: 21px; margin-top: 6px; }
+.slide--bullets li > .glyph {
+  position: absolute; left: 0; top: 6px;
+  width: 21px; height: 21px;
+}
 .slide--bullets li:has(> .glyph)::before { content: none; }
 .display {
   font-family: var(--font-display);
@@ -572,11 +575,12 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
 /* --- bullets --- */
 .slide--bullets { gap: 40px; }
 .slide--bullets ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 22px; }
+/* the marker is absolutely positioned rather than a grid/flex track: an
+   editable item must stay a plain inline flow, or an <strong> the user adds
+   with cmd+B would become a grid item of its own and break the line apart */
 .slide--bullets li {
-  display: grid;
-  grid-template-columns: 30px 1fr;
-  gap: 18px;
-  align-items: start;
+  position: relative;
+  padding-left: 48px;                  /* 30px marker column + 18px gutter */
   font-size: 25px;
   line-height: 1.4;
   letter-spacing: -.01em;
@@ -587,6 +591,7 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
 .slide--bullets li::before {
   content: var(--marker, counter(li, decimal-leading-zero));
   counter-increment: li;
+  position: absolute; left: 0; top: 0;
   width: var(--marker-w, auto); height: var(--marker-h, auto);
   background: var(--marker-bg, none);
   border-radius: var(--marker-radius, 0);
@@ -652,11 +657,13 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
   counter-reset: cnote;
 }
 .callout__notes li {
-  display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: start;
+  position: relative;
+  padding-left: 38px;                  /* 26px marker + 12px gutter */
   font-size: 17px; line-height: 1.5; color: var(--muted);
 }
 .callout__notes li::before {
   content: counter(cnote); counter-increment: cnote;
+  position: absolute; left: 0; top: 0;
   width: 26px; height: 26px; border-radius: 50%;
   background: color-mix(in oklab, var(--accent) 16%, transparent);
   border: 1px solid color-mix(in oklab, var(--accent) 50%, transparent);
