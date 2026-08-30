@@ -1053,6 +1053,12 @@
   // for free; `type: "flag"` renders an on/off toggle there. TRANSIENT is the
   // derived set — window.slaydy.transient.add() still works and is
   // equivalent to declaring { name, derived: true }.
+  // "does this slide have one the runtime actually drives?" — the qualifier is
+  // the point: an option whose targets all sit under [data-custom] has nothing
+  // to change, and a control that silently does nothing is worse than one that
+  // isn't offered. Every `when` below goes through this.
+  const hasOwn = (s, sel) => outside($$(sel, s)).length > 0;
+
   const TRANSIENT = new Set();
   const OPTIONS = new Map();
   function declareOption(def) {
@@ -1077,14 +1083,14 @@
     { name: "data-bare", label: "Bare", type: "flag", hint: "Hide the footer — logo, label, page number." },
     { name: "data-reveal-all", label: "Reveal at once", type: "flag",
       hint: "Show progressive-reveal content immediately instead of step by step.",
-      when: s => !!s.querySelector("[data-reveal]"),
+      when: s => hasOwn(s, "[data-reveal]"),
       onchange: s => { markRevealSteps(); step = getSteps(s).length ? step : 0; applyReveal(s); } },
     { name: "data-sep", label: "Separator", values: ["dash", "en-dash", "slash", "pipe", "colon", "none"],
-      when: s => !!s.querySelector(".meta"),
+      when: s => hasOwn(s, ".meta"),
       hint: "Divider drawn between meta items. Deck-wide default lives on <body>.",
       onchange: s => $$(".meta", s).forEach(ensureSeparators) },
     { name: "data-list", label: "List style", values: ["numbers", "dots", "square", "dash", "chevron", "none"],
-      when: s => !!s.querySelector(LIST_SELECTOR),
+      when: s => hasOwn(s, LIST_SELECTOR),
       hint: "Marker style for this slide's lists. Default is the layout's own — numbers for the list layout, a dash in compare columns.",
       onchange: ensureListMarkers },
     { name: "data-crop", on: "media", label: "Crop", values: ["cover", "contain"],
