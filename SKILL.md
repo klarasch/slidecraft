@@ -116,7 +116,9 @@ a deck without them renders black.
 - Add `slide--agenda` only if there are more than 8 content slides.
 - A `slide--section` divider every 4–7 slides.
 - Vary layouts. Never two `bullets` in a row — reach for `bento`, `compare` or `timeline`
-  instead of a second list. At most one `stats`, one `number` and one `quote` per 10 slides.
+  instead of a second list. Reach for `table` when the content is genuinely a matrix — an
+  option × criterion grid — not to escape a long list. At most one `stats`, one `number` and
+  one `quote` per 10 slides.
 - Close with `slide--end`.
 - One idea per slide. If a slide needs two headlines, it is two slides.
 
@@ -134,6 +136,7 @@ a deck without them renders black.
 | stats | 3 × (number ≤ 6 chars, body ≤ 12 words) |
 | number | number ≤ 7 chars · lead ≤ 20 words |
 | compare | 2 cols × (title ≤ 3 words, ≤ 4 items × ≤ 10 words) |
+| table | ≤ 5 columns × ≤ 6 body rows × ≤ 6 words per cell |
 | timeline | 3–5 steps × (title ≤ 3 words, body ≤ 8 words) |
 | callout | ≤ 6 pins × note ≤ 12 words |
 | callout-full | ≤ 5 pins × note ≤ 10 words |
@@ -153,7 +156,7 @@ the type, which you cannot do anyway.
 | `<body data-transition>` | `rise` | `rise` | `rise` |
 | per-slide `data-transition` | — | `wipe` on section dividers | content-tailored (below) |
 | `data-reveal` on `ul` / `ol` | — | yes | yes |
-| `data-reveal` on `.cards` / `.stats` / `.bento` / `.compare` / `.timeline` | — | yes | yes |
+| `data-reveal` on `.cards` / `.stats` / `.bento` / `.compare` / `.timeline` / `tbody` | — | yes | yes |
 | `data-animate="count"` on `.stat__num` | — | yes | yes |
 | `data-kenburns` on full-bleed `figure.media` | — | — | yes |
 | `<aside class="notes">` | only if asked | every content slide | every slide, required |

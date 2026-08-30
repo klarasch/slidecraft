@@ -293,7 +293,7 @@
       outside($$("[data-step]", s)).forEach(n => n.removeAttribute("data-step"));
       if (s.hasAttribute("data-reveal-all")) return;   // per-slide option: no steps, show everything
       outside($$("[data-reveal]", s)).forEach(host => {
-        const isContainer = ["UL", "OL"].includes(host.tagName) || host.matches(".cards,.stats,.stack,.bento,.compare,.timeline,.gallery");
+        const isContainer = ["UL", "OL", "TBODY"].includes(host.tagName) || host.matches(".cards,.stats,.stack,.bento,.compare,.timeline,.gallery");
         (isContainer ? [...host.children] : [host]).forEach(el => el.dataset.step = "");
       });
     });
@@ -1352,6 +1352,7 @@
     { key: "stats", label: "Stats", html: () => `<section class="slide slide--stats" data-title="Stats"><div class="stack stack--sm"><p class="eyebrow">Kicker</p><h2 class="h1">Headline goes here</h2></div><div class="stats"><div class="stat"><p class="stat__num">0</p><p class="body">One sentence per stat.</p></div><div class="stat"><p class="stat__num">0</p><p class="body">One sentence per stat.</p></div><div class="stat"><p class="stat__num">0</p><p class="body">One sentence per stat.</p></div></div></section>` },
     { key: "number", label: "Big number", html: () => `<section class="slide slide--number" data-title="Big number"><p class="eyebrow">Kicker</p><p class="stat__num">0</p><p class="lead">One sentence putting the number in context.</p></section>` },
     { key: "compare", label: "Compare", html: () => `<section class="slide slide--compare" data-title="Compare"><div class="stack stack--sm"><p class="eyebrow">Kicker</p><h2 class="h1">Headline goes here</h2></div><div class="compare"><article class="col"><h3 class="h3">Before</h3><ul><li>One sentence per point.</li><li>One sentence per point.</li><li>One sentence per point.</li></ul></article><article class="col col--accent"><h3 class="h3">After</h3><ul><li>One sentence per point.</li><li>One sentence per point.</li><li>One sentence per point.</li></ul></article></div></section>` },
+    { key: "table", label: "Table", html: () => `<section class="slide slide--table" data-title="Table"><div class="stack stack--sm"><p class="eyebrow">Kicker</p><h2 class="h1">Headline goes here</h2></div><table><thead><tr><th>Row label</th><th>Column</th><th>Column</th></tr></thead><tbody><tr><td>Row label</td><td>Short cell.</td><td>Short cell.</td></tr><tr><td>Row label</td><td>Short cell.</td><td>Short cell.</td></tr><tr><td>Row label</td><td>Short cell.</td><td>Short cell.</td></tr></tbody></table></section>` },
     { key: "timeline", label: "Timeline", html: () => `<section class="slide slide--timeline" data-title="Timeline"><div class="stack stack--sm"><p class="eyebrow">Kicker</p><h2 class="h1">Headline goes here</h2></div><div class="timeline"><div class="step"><p class="caption">Q1</p><h3 class="h3">Milestone</h3><p class="body">One line.</p></div><div class="step"><p class="caption">Q2</p><h3 class="h3">Milestone</h3><p class="body">One line.</p></div><div class="step"><p class="caption">Q3</p><h3 class="h3">Milestone</h3><p class="body">One line.</p></div><div class="step"><p class="caption">Q4</p><h3 class="h3">Milestone</h3><p class="body">One line.</p></div></div></section>` },
     { key: "full", label: "Image + text", html: () => `<section class="slide slide--full" data-title="Image + text"><figure class="media bleed"></figure><div class="overlay"><p class="eyebrow">Kicker</p><h2 class="h1">Headline goes here</h2><p class="lead">One sentence of support.</p></div></section>` },
     { key: "image", label: "Full image", html: () => `<section class="slide slide--image" data-bare data-title="Image"><figure class="media bleed"></figure><p class="credit">Caption or credit — clear this to remove it.</p></section>` },
@@ -1569,6 +1570,10 @@
       const notesOl = tag === "LI" ? el.closest(".callout__notes") : null;
       // any list in any layout — compare columns, agenda, bullets alike
       const listEl = tag === "LI" && !notesOl ? el.closest("ul, ol") : null;
+      // table cells. rowEl is a body row only — a header row has no row to
+      // add below it, and thead never shrinks
+      const cellEl = tag === "TD" || tag === "TH" ? el : null;
+      const rowEl = cellEl?.closest("tbody") ? cellEl.closest("tr") : null;
 
       // ⌘/Ctrl+B: emphasis toggle — see toggleEmphasis for the wrap/unwrap logic
       if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "b") {
@@ -1578,14 +1583,14 @@
       }
 
       // A line break within the element, in any editable leaf. Shift+Enter is
-      // the documented gesture; plain Enter lands here too once no list is
-      // waiting for it (a <pre> keeps its own newlines) — the browser would
+      // the documented gesture; plain Enter lands here too once no list and no
+      // table row is waiting for it (a <pre> keeps its own newlines) — the browser would
       // otherwise insert a bare "\n", which renders while plaintext-only puts
       // white-space: pre-wrap on the element and silently collapses the moment
       // editing stops, so the break would vanish on save.
       // plaintext-only blocks insertHTML, so place the <br> via the range API
       if (e.key === "Enter" &&
-          (e.shiftKey || (!listEl && !notesOl && tag !== "PRE"))) {
+          (e.shiftKey || (!listEl && !notesOl && !cellEl && tag !== "PRE"))) {
         e.preventDefault();
         const sel = getSelection();
         if (!sel.rangeCount) return;
@@ -1689,6 +1694,43 @@
         markRevealSteps();
         placeCaret(prevLi || notesOl.querySelector("li"), true);
         measureOverflow(slides[index]);
+        return;
+      }
+
+      // table rows: Enter adds a row below with the same cells, Backspace in
+      // an already-empty row removes it. A cell is never deleted on its own —
+      // that would shear the column grid — so the generic empty-leaf delete
+      // further down never sees a td/th.
+      if (cellEl) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (!rowEl) return;
+          snapshot();
+          const tr = document.createElement("tr");
+          [...rowEl.children].forEach(c => {
+            const cell = document.createElement(c.tagName.toLowerCase());
+            cell.setAttribute("contenteditable", "plaintext-only");
+            cell.setAttribute("spellcheck", "false");
+            tr.append(cell);
+          });
+          rowEl.after(tr);
+          markRevealSteps();
+          placeCaret(tr.firstElementChild, true);
+          measureOverflow(slides[index]);
+          return;
+        }
+        if (e.key === "Backspace" && !el.textContent.trim() && rowEl) {
+          const body = rowEl.parentElement;
+          const spent = [...rowEl.children].every(c => !c.textContent.trim());
+          if (!spent || body.children.length <= 1) return;  // the last row stays
+          e.preventDefault();
+          snapshot();
+          const prev = rowEl.previousElementSibling;
+          rowEl.remove();
+          markRevealSteps();
+          placeCaret((prev || body.firstElementChild)?.firstElementChild, true);
+          measureOverflow(slides[index]);
+        }
         return;
       }
 
@@ -2102,6 +2144,7 @@
       stats: `<i style="left:8%;top:40%;width:18%;height:18%"></i><i style="left:41%;top:40%;width:18%;height:18%"></i><i style="left:74%;top:40%;width:18%;height:18%"></i>`,
       number: `<i style="left:10%;top:28%;width:38%;height:30%"></i><i style="left:10%;top:66%;width:52%;height:5%"></i>`,
       compare: `<i style="left:8%;top:24%;width:41%;height:56%;background:var(--tile-card,#22222b)"></i><i style="left:51%;top:24%;width:41%;height:56%;background:var(--tile-card,#22222b)"></i>`,
+      table: `<i class="a" style="left:8%;top:17%;width:14%;height:4%"></i><i class="a" style="left:30%;top:17%;width:14%;height:4%"></i><i class="a" style="left:52%;top:17%;width:14%;height:4%"></i><i class="a" style="left:74%;top:17%;width:14%;height:4%"></i><i style="left:8%;top:25%;width:84%;height:1.5%"></i><i style="left:8%;top:34%;width:14%;height:4%"></i><i style="left:30%;top:34%;width:14%;height:4%"></i><i style="left:52%;top:34%;width:14%;height:4%"></i><i style="left:74%;top:34%;width:14%;height:4%"></i><i style="left:8%;top:50%;width:14%;height:4%"></i><i style="left:30%;top:50%;width:14%;height:4%"></i><i style="left:52%;top:50%;width:14%;height:4%"></i><i style="left:74%;top:50%;width:14%;height:4%"></i><i style="left:8%;top:66%;width:14%;height:4%"></i><i style="left:30%;top:66%;width:14%;height:4%"></i><i style="left:52%;top:66%;width:14%;height:4%"></i><i style="left:74%;top:66%;width:14%;height:4%"></i>`,
       timeline: `<i style="left:8%;top:40%;width:84%;height:2.5%"></i><i class="a" style="left:12%;top:36%;width:4%;height:9%;border-radius:50%"></i><i class="a" style="left:40%;top:36%;width:4%;height:9%;border-radius:50%"></i><i class="a" style="left:68%;top:36%;width:4%;height:9%;border-radius:50%"></i><i style="left:10%;top:54%;width:16%;height:4%"></i><i style="left:38%;top:54%;width:16%;height:4%"></i><i style="left:66%;top:54%;width:16%;height:4%"></i>`,
       full: `<i class="img" style="inset:0;width:100%;height:100%"></i><i style="left:10%;top:70%;width:50%;height:9%;background:#fff"></i>`,
       image: `<i class="img" style="inset:0;width:100%;height:100%"></i>`,

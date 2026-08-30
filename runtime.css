@@ -444,6 +444,32 @@ h1 strong, h2 strong, h3 strong,
   border: 1px dashed var(--faint);
   border-radius: 12px;
 }
+/* a <figcaption> turns the slot into picture-over-caption: the figure stops
+   being the rounded box (the image becomes it) so the caption sits outside
+   the crop rather than under it. Excluded are the slots where a caption has
+   nowhere to live or would shift a coordinate frame — bleeds run to the slide
+   edge, and callout pins are positioned against the whole figure. */
+.media:has(> figcaption):not(.bleed, .split__media, .callout__media) {
+  display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 12px;
+  overflow: visible; background: none; border-radius: 0;
+}
+.media:has(> figcaption):not(.bleed, .split__media, .callout__media) > img {
+  border-radius: 12px; background: var(--surface);
+}
+.media:has(> figcaption):not(.bleed, .split__media, .callout__media) > figcaption {
+  grid-row: 2;                         /* an empty slot has no img to hold row 1 open */
+  font: 500 13px/1.4 var(--font-mono);
+  letter-spacing: .04em;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+/* the empty-slot placeholder and the edit-mode overlay belong to the picture,
+   not the caption — grid placement keeps both absolute boxes in the first row */
+.media:has(> figcaption):not(.bleed, .split__media, .callout__media)::after,
+.media:has(> figcaption):not(.bleed, .split__media, .callout__media) .media-hover {
+  grid-row: 1; border-radius: 12px;
+}
+
 body.is-editing .media { cursor: pointer; outline-offset: 3px; }
 body.is-editing .media:hover { outline: 2px solid var(--accent); }
 
@@ -510,26 +536,26 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
    <body> deck-wide, on a slide, or come from data-list-text / data-list-icon. */
 [data-list="numbers"] {
   --marker: counter(li, decimal-leading-zero);
-  --marker-w: auto; --marker-h: auto; --marker-bg: none; --marker-top: 0;
+  --marker-w: auto; --marker-h: auto; --marker-bg: none; --marker-top: 8px;
 }
 [data-list="dots"] {
   --marker: ""; --marker-w: 8px; --marker-h: 8px;
   --marker-radius: 999px; --marker-bg: var(--accent);
-  --marker-shift: 13px; --marker-top: .5em;
+  --marker-shift: 13px; --marker-top: 10px;
 }
 [data-list="square"] {
   --marker: ""; --marker-w: 8px; --marker-h: 8px;
   --marker-radius: 2px; --marker-bg: var(--accent);
-  --marker-shift: 13px; --marker-top: .5em;
+  --marker-shift: 13px; --marker-top: 10px;
 }
 [data-list="dash"] {
   --marker: ""; --marker-w: 14px; --marker-h: 2px;
   --marker-bg: var(--accent);
-  --marker-shift: 15px; --marker-top: .62em;
+  --marker-shift: 15px; --marker-top: 13px;
 }
 [data-list="chevron"] {
   --marker: "\203A";                        /* › */
-  --marker-w: auto; --marker-h: auto; --marker-bg: none; --marker-top: 0;
+  --marker-w: auto; --marker-h: auto; --marker-bg: none; --marker-top: 8px;
 }
 [data-list="none"] {
   --marker: ""; --marker-w: 0; --marker-h: 0; --marker-bg: none;
@@ -601,6 +627,16 @@ body.is-editing .media:not([data-empty]):hover .media-hover { display: grid; }
   letter-spacing: .04em;
 }
 .slide--bullets ul { counter-reset: li; }
+
+/* chevron is a real glyph, not a fixed-size box: match the body text's font
+   metrics so its line box lines up exactly with the li's first line instead
+   of floating at the small marker font size used by the other list styles */
+[data-list="chevron"] .slide--bullets li::before,
+.slide--bullets[data-list="chevron"] li::before {
+  font: 600 1em/1.4 var(--font-mono);
+  top: 0;
+  margin-top: 0;
+}
 
 /* --- agenda (two column index) --- */
 .slide--agenda { gap: 38px; }
@@ -828,7 +864,7 @@ body.is-editing .pin.is-sel { outline: 2px solid #fff; outline-offset: 2px; }
 .slide--compare .col li::before {
   content: var(--marker, "");
   counter-increment: li;
-  position: absolute; left: 0; top: var(--marker-top, .62em);
+  position: absolute; left: 0; top: var(--marker-top, 13px);
   width: var(--marker-w, 12px); height: var(--marker-h, 2px);
   background: var(--marker-bg, var(--accent));
   border-radius: var(--marker-radius, 0);
@@ -842,6 +878,44 @@ body.is-editing .pin.is-sel { outline: 2px solid #fff; outline-offset: 2px; }
 }
 .slide--compare .col li:has(> .glyph)::before { content: none; }
 
+/* a panel may hold a picture instead of a list — before/after screenshots,
+   two directions side by side. The slot takes the leftover column height. */
+.slide--compare .col > .media { flex: 1; min-height: 0; }
+
+/* --- table: a matrix of short cells — pricing, feature grid, RACI.
+   Hairline rows and no vertical rules; the first column reads as the row
+   label. data-key="N" on the <table> tints the Nth column end to end, which
+   is how you point at the plan you are arguing for. --- */
+.slide--table { gap: 34px; }
+.slide--table table {
+  width: 100%; border-collapse: collapse; table-layout: fixed;
+}
+.slide--table th,
+.slide--table td {
+  text-align: left; vertical-align: top;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--faint);
+  font-size: 18px; line-height: 1.4; color: var(--muted);
+}
+.slide--table thead th {
+  font: 600 13px/1.4 var(--font-mono);
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--accent);
+  border-bottom-color: color-mix(in oklab, var(--fg) 22%, transparent);
+}
+.slide--table tbody tr:last-child > * { border-bottom: 0; }
+.slide--table tbody th,
+.slide--table tbody td:first-child { color: var(--fg); font-weight: 500; }
+.slide--table .glyph { width: 19px; height: 19px; margin: 0; }
+/* one tinted column. CSS cannot read an attribute into :nth-child, so the
+   five a table can hold are spelled out. */
+.slide--table table[data-key="1"] tr > :nth-child(1),
+.slide--table table[data-key="2"] tr > :nth-child(2),
+.slide--table table[data-key="3"] tr > :nth-child(3),
+.slide--table table[data-key="4"] tr > :nth-child(4),
+.slide--table table[data-key="5"] tr > :nth-child(5) {
+  background: color-mix(in oklab, var(--accent) 9%, transparent);
+}
 /* --- timeline: horizontal steps on a hairline --- */
 .slide--timeline { gap: 56px; }
 .slide--timeline .timeline {

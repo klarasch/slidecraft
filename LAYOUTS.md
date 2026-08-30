@@ -53,6 +53,7 @@ change type sizes, only what you write.
 | `stats` | exactly 3 × (`.stat__num` ≤ 6 characters, `.body` ≤ 12 words) |
 | `number` | `.stat__num` ≤ 7 characters · `.lead` ≤ 20 words |
 | `compare` | exactly 2 cols × (`.h3` ≤ 3 words, ≤ 4 items × ≤ 10 words) |
+| `table` | ≤ 5 columns × ≤ 6 body rows × ≤ 6 words per cell · headers ≤ 3 words |
 | `timeline` | 3–5 steps × (`.caption` ≤ 3 words, `.h3` ≤ 3 words, `.body` ≤ 8 words) |
 | `callout` | ≤ 6 pins × note ≤ 12 words · headline ≤ 6 words |
 | `callout-full` | ≤ 5 pins × note ≤ 10 words · headline ≤ 5 words |
@@ -191,7 +192,27 @@ Variants: `cell--tall` (spans both rows — pair it with four normal cells),
   <article class="col col--accent"><h3 class="h3">After</h3><ul><li>…</li></ul></article>
 </div>
 ```
-Put the option you are arguing for in the `col--accent` panel.
+Put the option you are arguing for in the `col--accent` panel. A panel can hold a
+`<figure class="media">` instead of the list — before/after screenshots side by side —
+and the slot takes the leftover height of the column.
+
+### `slide--table` — a matrix of short cells
+Pricing tiers, feature grids, RACI. Rows are hairline-separated with no vertical rules;
+the first column reads as the row label. `data-key="N"` on the `<table>` tints the Nth
+column end to end — use it for the option you are recommending, at most one per table.
+Cells hold a few words, a figure, or a `.glyph` icon (`✓`/`✗` marks in a feature grid);
+they are not paragraphs. In edit mode Enter adds a row, Backspace clears an empty one.
+```html
+<div class="stack stack--sm"><p class="eyebrow">…</p><h2 class="h1">…</h2></div>
+<table data-key="3">
+  <thead><tr><th>Plan</th><th>Starter</th><th>Team</th><th>Scale</th></tr></thead>
+  <tbody>
+    <tr><td>Seats</td><td>3</td><td>25</td><td>Unlimited</td></tr>
+    <tr><td>SSO</td><td>—</td><td>✓</td><td>✓</td></tr>
+  </tbody>
+</table>
+```
+`<tbody data-reveal>` steps the table one row at a time.
 
 ### `slide--timeline` — 3–5 horizontal steps on a hairline
 ```html
@@ -410,6 +431,12 @@ original tier and tone. Keep it up to date if the user changes the brief.
 - To leave an upload placeholder, emit an empty slot: `<figure class="media split__media"></figure>`.
   It renders a dashed "＋ image" target the user can click, drop onto, or paste into.
 - Never invent a path to a file that does not exist. An empty slot is always better than a broken image.
+- A `<figcaption>` inside a slot renders a mono caption underneath it, and the picture
+  shrinks to make room: `<figure class="media"><img src="images/a.jpg" alt=""><figcaption>What it
+  shows.</figcaption></figure>`. Keep it to ≤ 12 words. It works wherever a slot has room to give
+  — `gallery`, a `compare` panel, `bento` media cells — and is ignored on the slots that run to
+  the slide edge (`split`, `full`, `image`) or carry pins (`callout`); those use `.credit` or a
+  note instead.
 
 ---
 
