@@ -420,6 +420,41 @@ attributes, apply the requested change, and remove the attribute.
 
 ---
 
+## Custom content — `data-style` and `data-custom`
+
+Only on the user's explicit request; `SKILL.md` §7 carries the full contract and the reasons.
+Both attributes are namespaces the runtime will never define, which is what makes deck-authored
+CSS safe across runtime updates.
+
+`data-style="<name>"` is a styling hook and nothing more. The slide behaves exactly as it always
+did — text editable, reveals working — and the deck's CSS has something to target.
+
+`data-custom="<name>"` hands the subtree over. The runtime does not decorate it, does not make it
+editable, does not step it, does not advance the deck when it is clicked, and leaves it the
+keyboard while it holds focus. For diagrams and widgets.
+
+```html
+<!-- in <head>, one block of each, everything scoped to its hook -->
+<style data-deck>
+  [data-custom="wardley"] .node { fill: var(--accent); }
+  [data-custom="wardley"] .axis { stroke: color-mix(in oklab, var(--fg) 30%, transparent); }
+</style>
+
+<!-- on the slide -->
+<figure data-custom="wardley">
+  <svg viewBox="0 0 900 300" width="100%">
+    <line class="axis" x1="60" y1="260" x2="860" y2="260"/>
+    <circle class="node" cx="200" cy="70" r="8"/><text class="lbl" x="214" y="66">Deck</text>
+  </svg>
+</figure>
+```
+
+A `<script data-deck>` goes in `<head>` too, waits for `DOMContentLoaded`, stays inside its own
+subtree, and marks anything it generates `data-gen`. No relative `url()` in deck CSS — the build
+refuses it, because images travel as files, not base64.
+
+---
+
 ## Derived attributes — never write these
 
 The runtime writes these itself. They are diagnostics, not inputs.

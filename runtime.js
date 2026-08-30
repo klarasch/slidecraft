@@ -19,6 +19,20 @@
   const W = 1280, H = 720;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  /* ------------------------------------------------------- custom content
+     A deck may carry content the runtime does not own: an inline SVG
+     diagram, an interactive widget, a slide deliberately off-brand because
+     its author asked for that. It lives under [data-custom], whose value
+     names it and namespaces whatever CSS the deck writes for it.
+
+     The runtime's half of the contract is this pair of helpers. Inside
+     [data-custom] it never decorates, edits, highlights, steps, drags or
+     navigates — it only carries the markup and hands the keyboard over.
+     Because everything a deck authors stays scoped to that subtree, a
+     runtime upgrade has nothing of the deck's to collide with; that, not
+     good manners, is what makes hand-written CSS and JS safe here. */
+  const inCustom = el => !!el?.closest?.("[data-custom]");
+  const outside = els => els.filter(el => !inCustom(el));
   // a document loaded via srcdoc (Claude's artifact preview, some embeds)
   // resolves "#n" against the parent frame's URL while document.URL stays
   // "about:srcdoc" — Chrome then rejects the state object as cross-origin.
@@ -109,7 +123,7 @@
       right.textContent = String(i + 1).padStart(2, "0");
       chrome.append(left, right);
 
-      $$(".media", s).forEach(m => {
+      outside($$(".media", s)).forEach(m => {
         if (!$("img", m)) m.dataset.empty = "";
         else delete m.dataset.empty;
         if (!$(".media-hover", m)) {
@@ -127,10 +141,10 @@
 
       ensureNoteChip(s);
       ensureOverflowBadge(s);
-      $$(".sticker", s).forEach(ensureStickerHandles);
+      outside($$(".sticker", s)).forEach(ensureStickerHandles);
       if (s.classList.contains("slide--placeholder")) ensurePlaceholderNote(s);
-      if (s.classList.contains("slide--code")) $$("pre", s).forEach(highlight);
-      $$(".meta", s).forEach(ensureSeparators);
+      if (s.classList.contains("slide--code")) outside($$("pre", s)).forEach(highlight);
+      outside($$(".meta", s)).forEach(ensureSeparators);
       ensureListMarkers(s);
     });
     markRevealSteps();
@@ -173,7 +187,7 @@
   // whole deck or on a single slide, like data-list itself.
   const LIST_SELECTOR = ".slide--bullets li, .slide--compare .col li";
   function ensureListMarkers(s) {
-    const items = $$(LIST_SELECTOR, s);
+    const items = outside($$(LIST_SELECTOR, s));
     if (!items.length) return;
     const text = s.closest("[data-list-text]")?.dataset.listText;   // closest() reaches <body>
     if (text) {
@@ -276,9 +290,9 @@
   // derived [data-step] attribute so CSS can hide un-revealed steps.
   function markRevealSteps() {
     slides.forEach(s => {
-      $$("[data-step]", s).forEach(n => n.removeAttribute("data-step"));
+      outside($$("[data-step]", s)).forEach(n => n.removeAttribute("data-step"));
       if (s.hasAttribute("data-reveal-all")) return;   // per-slide option: no steps, show everything
-      $$("[data-reveal]", s).forEach(host => {
+      outside($$("[data-reveal]", s)).forEach(host => {
         const isContainer = ["UL", "OL"].includes(host.tagName) || host.matches(".cards,.stats,.stack,.bento,.compare,.timeline,.gallery");
         (isContainer ? [...host.children] : [host]).forEach(el => el.dataset.step = "");
       });
@@ -511,7 +525,7 @@
 
   function enableEditing() {
     unhighlightAll();                                // token spans can't survive a caret
-    $$(EDITABLE, deck).forEach(el => {
+    outside($$(EDITABLE, deck)).forEach(el => {
       if (el.querySelector(EDITABLE)) return;        // container, not a leaf
       el.setAttribute("contenteditable", "plaintext-only");
       el.setAttribute("spellcheck", "false");
@@ -689,6 +703,7 @@
   function initStickerDrag() {
     deck.addEventListener("pointerdown", e => {
       if (!editing) return;
+      if (inCustom(e.target)) { selectSticker(null); selectPin(null); return; }
       const pin = e.target.closest(".pin");
       if (pin) return startPinDrag(pin, e);
       const handle = e.target.closest(".handle");
@@ -902,8 +917,8 @@
     delete pre.dataset.hl;
     delete pre.dataset.hlSrc;
   }
-  const highlightAll = () => $$(".slide--code pre", deck).forEach(highlight);
-  const unhighlightAll = () => $$("pre[data-hl]", deck).forEach(unhighlight);
+  const highlightAll = () => outside($$(".slide--code pre", deck)).forEach(highlight);
+  const unhighlightAll = () => outside($$("pre[data-hl]", deck)).forEach(unhighlight);
 
   // conservative compaction: strip comments, indentation and blank lines.
   // Line-interior whitespace is never touched, so CSS content strings and
@@ -2391,6 +2406,10 @@
     addEventListener("keydown", e => {
       const typing = e.target.isContentEditable ||
         /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+      // focus inside a custom widget: the keyboard is its own, so a game or
+      // a chart that reads arrow keys isn't fighting slide navigation.
+      // Escape is handled above this and still gets the user back out.
+      const widget = !typing && inCustom(e.target);
       const meta = e.metaKey || e.ctrlKey;
 
       if (meta && !typing && e.key.toLowerCase() === "z") {
@@ -2408,7 +2427,7 @@
         if (overviewOpen) return toggleOverview(false);
         if (editing) return toggleEdit(false);
       }
-      if (typing) {
+      if (typing || widget) {
         if (e.key === "Escape") e.target.blur();
         return;
       }
@@ -2466,6 +2485,10 @@
     // click-through navigation (view mode only)
     deck.addEventListener("click", e => {
       if (editing || overviewOpen) return;
+      // a click inside a custom widget is the widget's — advancing the deck
+      // out from under someone using an interactive slide is never right.
+      // The rest of the slide still advances, as do the arrow keys.
+      if (inCustom(e.target)) return;
       const r = deck.getBoundingClientRect();
       (e.clientX - r.left) / r.width > 0.35 ? next() : prev();
     });
@@ -2475,7 +2498,7 @@
     // button, and double-click adds a pin.
     deck.addEventListener("click", e => {
       const slot = e.target.closest(".media");
-      if (!editing || !slot) return;
+      if (!editing || !slot || inCustom(e.target)) return;
       if (e.target.closest(".pin")) return;
       if (e.target.closest(".media-hover__crop")) { e.stopPropagation(); toggleCrop(slot); return; }
       if (slot.classList.contains("callout__media") && $("img", slot) && !e.target.closest(".media-hover")) return;
@@ -2488,7 +2511,8 @@
     deck.addEventListener("dblclick", e => {
       if (!editing) return;
       const fig = e.target.closest(".callout__media");
-      if (!fig || !$("img", fig) || e.target.closest(".pin,.media-hover")) return;
+      if (!fig || inCustom(e.target)) return;
+      if (!$("img", fig) || e.target.closest(".pin,.media-hover")) return;
       e.preventDefault();
       addPinAt(fig, e.clientX, e.clientY);
     });

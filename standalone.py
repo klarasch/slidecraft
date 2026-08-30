@@ -83,6 +83,35 @@ def inline_css_urls(css: str, base: Path) -> str:
     return CSS_URL.sub(swap, css)
 
 
+DECK_BLOCK = re.compile(r"<(style|script)([^>]*\bdata-deck\b[^>]*)>([\s\S]*?)</\1>")
+
+
+def check_deck_blocks(html: str) -> None:
+    """A deck may carry its own <style data-deck> / <script data-deck> for
+    content under [data-custom]. Two placement rules make that safe, and both
+    are cheap to get wrong silently, so they fail loudly here instead.
+
+    1. Both live in <head>. The bundle this script appends sits at the end of
+       <body>, and --explode reclaims it by position (see the regex below) —
+       a deck block sitting next to it would be swallowed as runtime.
+    2. No relative url() in deck CSS. Nothing inlines it, and inlining it
+       would drag base64 back through the next revision, which the explode
+       side exists to prevent."""
+    head = html.split("</head>", 1)[0]
+    for m in DECK_BLOCK.finditer(html):
+        tag = m.group(1)
+        if m.start() > len(head):
+            sys.exit(f"error: <{tag} data-deck> must live in <head> — found one in <body>.\n"
+                     f"       The runtime bundle is appended at the end of <body>; a deck block\n"
+                     f"       there is indistinguishable from it on the way back out.")
+        if tag == "style":
+            rel = [u for _q, u in CSS_URL.findall(m.group(3)) if is_rel(u.strip())]
+            if rel:
+                sys.exit(f"error: <style data-deck> references a relative url({rel[0]}).\n"
+                         f"       Custom CSS can't carry assets — use an <img> or inline SVG\n"
+                         f"       in the slide instead, so images keep travelling as files.")
+
+
 def deck_title(html: str) -> str:
     m = re.search(r"<title>(.*?)</title>", html, re.S)
     name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "", m.group(1)).strip() if m else ""
@@ -92,6 +121,7 @@ def deck_title(html: str) -> str:
 def build(deck_path: Path, out_path: Path) -> None:
     folder = deck_path.parent
     html = deck_path.read_text(encoding="utf-8")
+    check_deck_blocks(html)
     css_parts, js_parts = [], []
     theme_blocks: list[tuple[str, str]] = []
     active_name = {"v": None}

@@ -306,7 +306,59 @@ Do not screenshot every slide by default. One overview screenshot, if the user w
 
 ---
 
-## 7. Setup — training a brand
+## 7. Custom content — only when asked
+
+The layouts cover the deck. Now and then they do not cover the *slide*: a Wardley map, a
+hand-drawn diagram, a small interactive widget, one card deliberately off-brand. The runtime
+carries all of that, under one condition — **the user asked for it.**
+
+Wanting the slide to look better is not a request. Reaching for custom code because a layout
+almost fits is the exact failure this section exists to prevent, because custom content costs
+things the layouts give away free: text inside a hand-over is not editable, a slide that hardcodes
+colour ignores a theme swap, and nothing custom maps to a non-HTML export. If a layout nearly
+fits, use the layout. If the user asks for something the layouts genuinely cannot express, build
+it here, and say once what it costs.
+
+Two hooks, promising different things.
+
+**`data-style="<name>"` — a styling hook.** The runtime behaves exactly as it always does: text
+stays editable, reveals still work, nothing changes. The attribute exists purely so deck CSS has
+something safe to aim at. This is what a deliberately pink bento card wants.
+
+```html
+<article class="cell" data-style="pink"><h3 class="h3">…</h3><p class="body">…</p></article>
+```
+
+**`data-custom="<name>"` — a hand-over.** Inside it the runtime does nothing: no editing, no
+decoration, no reveal steps, no click-to-advance, and while the content holds focus the keyboard
+is its own. This is for diagrams and widgets, whose internals are not the runtime's business.
+
+```html
+<figure data-custom="wardley">
+  <svg viewBox="0 0 900 300" width="100%">…</svg>
+</figure>
+```
+
+The deck's own CSS and JS live in `<head>`, as one `<style data-deck>` and one
+`<script data-deck>`:
+
+- Every selector is scoped under its hook — `[data-style="pink"] …`, `[data-custom="wardley"] …`.
+  Never write a rule that targets a runtime class (`.cell`, `.timeline`, `.h1`) on its own. That
+  scoping is the entire safety mechanism: the runtime is replaced wholesale on every revise pass,
+  and a scoped rule has nothing of the runtime's to collide with.
+- Colours come from tokens (`var(--accent)`, `var(--fg)`, `color-mix(…)`) so the slide still
+  answers a theme swap — unless the user named a colour, which is theirs to name.
+- No relative `url()` in deck CSS. Images travel as files, so use an `<img>` or inline SVG;
+  `standalone.py` refuses the deck otherwise.
+- Script work waits for `DOMContentLoaded`, touches nothing outside its own subtree, and tags
+  whatever it generates `data-gen`, so saving the deck does not bake the generated copy in twice.
+
+On a later pass, custom blocks are the user's code. Do not rewrite, reformat, tidy or improve
+them. Touch one only when the request is about that slide.
+
+---
+
+## 8. Setup — training a brand
 
 Inputs: a website URL, brand guidelines PDF, and/or a logo file. Any one is enough.
 
@@ -344,10 +396,15 @@ file. Read it before writing a theme.
 
 ---
 
-## 8. Hard rules
+## 9. Hard rules
 
-- Never write CSS or JavaScript for a deck. No `<style>`, no `<script>`, and no `style=` —
-  with one exception: `left`/`top` percentages on a callout `.pin` (see `LAYOUTS.md`).
+- Never write CSS or JavaScript for a deck on your own initiative. No `<style>`, no `<script>`,
+  no `style=`. Two exceptions, both narrow: `left`/`top` percentages on a callout `.pin` (see
+  `LAYOUTS.md`), and custom content the user explicitly asked for, under the contract in §7.
+  Never offer custom content as an option — build it when it is asked for, not before.
+- Never write a rule that targets a runtime class, even when the user asks for the look. Put a
+  `data-style` or `data-custom` hook on the element and scope the rule to that (§7). A deck that
+  restyles `.timeline` breaks on the next runtime update; a scoped rule cannot.
 - Never edit `runtime.js`, `runtime.css`, or a theme file to make one deck work.
 - Never inline images as base64. Relative paths or empty slots.
 - Never exceed the density budgets. Cut words instead.
