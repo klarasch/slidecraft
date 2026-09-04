@@ -1,3 +1,6 @@
+<!-- Upstream-owned: every update replaces this file whole (UPDATING.md §1). Brand-specific
+     layout preferences and custom layouts are documented in themes/<brand>.md, not here. -->
+
 # Layout contract
 
 This is the model-facing reference. When generating a deck, emit **only** `<section class="slide slide--X">` blocks
@@ -360,6 +363,10 @@ written as spoken prompts — not a transcript, not a repeat of the slide.
 
 ## Deck skeleton — copy this shell exactly
 
+**If the skill folder has a `skeleton.html`, copy that instead** — it is this shell with the
+install's own wiring already in it (its fonts, its extension layer, its `<body>` attributes),
+and it takes precedence over everything in this section.
+
 Every `deck.html` is this file, with slides inside `.deck`. The `.stage > .deck` wrappers
 and the closing script are **load-bearing — without them the runtime never starts and the
 deck renders black**. Link order matters: `runtime.css` before the theme, so brand tokens
@@ -395,6 +402,10 @@ falls back to system fonts.
 
 After writing the file, confirm: it contains `<div class="deck">`, the theme `<link>` comes
 **after** `runtime.css`, and the last thing in `<body>` is the `runtime.js` script.
+
+If the install ships an extension layer (`SKILL.md` §3): `custom.css` and then every
+`custom/*.css` in name order go right after the theme `<link>`; `custom.js` and then every
+`custom/*.js` in name order go right after the `runtime.js` `<script>`, still inside `<body>`.
 
 ## Deck-level markup
 

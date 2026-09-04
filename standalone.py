@@ -2,6 +2,13 @@
 """Build a self-contained single-file deck from a slaydy deck folder,
 or take one apart again.
 
+UPSTREAM-OWNED. Every update replaces this file whole, and an edit here is
+skipped by take-update.sh from then on (UPDATING.md §1). If the export can't
+see an asset of yours, make the asset visible instead of patching this: put
+what your script fetches behind a real <script src> and it is inlined like
+any other script (CUSTOMIZING.md, Layer 3). Export-time transforms belong in
+the slaydy:serialize event, which the in-browser export honours.
+
 Usage:  python3 standalone.py path/to/deck.html [out.html]
         python3 standalone.py --explode path/to/standalone.html [out.html]
 

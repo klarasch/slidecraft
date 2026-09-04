@@ -1,3 +1,6 @@
+<!-- Upstream-owned: every update replaces this file whole (UPDATING.md §1). Brand rules live
+     in themes/<brand>.md; install rules in SKILL.fork.md. -->
+
 # Branding slaydy
 
 How to adapt slaydy to a company identity. A brand is four things on disk:
@@ -206,7 +209,9 @@ Fonts are declared in `runtime.css` `:root` as `--font-display`, `--font-body`, 
 
 If the brand fonts are licensed files rather than Google Fonts, put the files in `fonts/`, add
 `@font-face` rules at the top of the theme file, and drop the Google Fonts `<link>` from the deck
-`<head>`. Do this whenever you can — it also makes the deck work offline, which matters on stage.
+`<head>` — by shipping a `skeleton.html` without it (`CUSTOMIZING.md`, Layer 0), so no deck is
+ever generated with the wrong fonts. Do this whenever you can — it also makes the deck work
+offline, which matters on stage.
 Single-file exports (the Download-copy button and `standalone.py`) inline relative `url()`
 references from every linked stylesheet, so the font files travel with the exported deck.
 
@@ -265,12 +270,22 @@ swap the symbols in its sprite.
 
 ## 4. The voice file — `themes/<name>.md`
 
-The theme controls how the deck looks. This file controls how it reads. Load it whenever the
-brand's theme is selected, and follow it over generic instincts.
+The theme controls how the deck looks. This file controls how it reads — and, when it has to,
+how it is made. Load it whenever the brand's theme is selected, and follow it over generic
+instincts.
 
 Five to ten rules. Concrete and checkable — "no exclamation marks" is a rule, "be confident" is
 not. Cover: tone, banned words, how headlines are written, any mandatory slide, and which
-layouts to prefer or avoid.
+layouts to prefer or avoid. It is also the place for a brand's *behaviour* rules — "ask which
+surface before generating", "every deck carries both themes" — anything you would otherwise
+edit into `SKILL.md`, which an update replaces. If the file can't express what you need, that is
+a gap to report upstream, not to edit around (`CUSTOMIZING.md`, Layer 1).
+
+**Brand and surface.** A brand that ships more than one legitimate variant of itself —
+light/dark, high-contrast — names them `<brand>-<surface>.css` and keeps **one** voice file at
+`themes/<brand>.md`: the lookup reads the chosen stylesheet's `.md` and every hyphen-prefix of
+it, so `acme-dark` finds `acme-dark.md` (what differs on that ground) and `acme.md` (the brand).
+Never name the shared file after one surface.
 
 **Example — `themes/northwind.md`:**
 
@@ -299,7 +314,9 @@ northwind
 ```
 
 With `themes/default` present, generation never asks about branding. Without it, and with
-several themes installed, ask once.
+several themes installed, ask once. For a brand with several surfaces the line may name a
+surface (`northwind-dark`: never ask) or just the brand (`northwind`: the surface is asked
+along with the brief) — or `SKILL.fork.md` may settle it for the install.
 
 Related: `<body data-themes="a b c">` lists the themes the `T` key cycles through at
 presentation time. **Omit `data-themes` entirely on a brand-locked install** — a company deck
@@ -321,6 +338,9 @@ file is shared across every brand installed in the folder.
 
 ## 7. Sharing a brand
 
-The whole folder is the skill. Commit it and distribute it as a Claude Code plugin, or drop it
+Give the install its own skill first: `SKILL.fork.md` with a `name:` and a `description:` that
+say the brand (`CUSTOMIZING.md`, Layer 0). Two skills that both describe themselves as "branded
+HTML slide decks" compete, and the generic one wins as often as yours. Then `./build.sh`, and
+`dist/<name>/` is the skill: commit it and distribute it as a Claude Code plugin, or drop it
 into a repo's `.claude/skills/` as a project skill. Everyone who installs it generates decks in
 the same brand with no further setup.

@@ -1,3 +1,5 @@
+<!-- Upstream-owned: every update replaces this file whole (UPDATING.md §1). -->
+
 # Taking an update from slaydy
 
 Upstream is **github.com/klarasch/slaydy**. This page is for whoever runs a copy of it — a
@@ -14,20 +16,28 @@ touches. What follows is the mechanics, and the three places a copy hides.
 ```
 runtime.js  runtime.css  runtime.min.js  runtime.min.css     replaced
 SKILL.md  LAYOUTS.md  BRANDING.md  CUSTOMIZING.md            replaced
-UPDATING.md  standalone.py                                   replaced
+UPDATING.md  standalone.py  build.sh                         replaced
 icons/                                                       added to, never pruned
 themes/{midnight,paper,mint}.css                             refreshed only if you kept them
-build.sh                                                     yours — read upstream's changes
 ```
 
-Everything else in a fork — your theme, your fonts, your logo, `custom.css`, `custom.js`,
-`themes/default`, your own icons — is yours, and no update touches it.
+Everything else in a fork — `SKILL.fork.md`, `skeleton.html`, `.skillignore`, your theme,
+your fonts, your logo, `custom.css`, `custom.js`, `custom/` or whatever your brand layer is
+called, `themes/default`, your own icons — is yours, and no update touches it, and all of it
+ships. One duty comes with `skeleton.html`: when the changelog says the skeleton changed, port
+the change into yours by hand.
 
-Three of those lines are not "replaced" for a reason. A fork that **deleted** the stock themes
+Two of those lines are not "replaced" for a reason. A fork that **deleted** the stock themes
 deleted them on purpose, and an update is not the place to resurrect one. New **icons** are
-additive and land beside your own. And **`build.sh`** is genuinely fork-owned: it names the
-skill, names the dist folder, and often patches frontmatter on the way out — so upstream's
-changes to it are something to read, not something to apply.
+additive and land beside your own.
+
+**`SKILL.md` is replaced, and that is fine, because the shipped one is composed.** The repo's
+`SKILL.md` is upstream's generic instruction set and stays that way. Your skill's *identity* —
+its `name:`, the `description:` that makes it trigger, and the brand's standing orders — lives
+in `SKILL.fork.md`, which no update touches. `./build.sh` puts the two together: your head on
+upstream's body (`CUSTOMIZING.md`, Layer 0). An install that instead edits `SKILL.md`, or
+patches its frontmatter from `build.sh`, ships as "slaydy" the first time upstream rewords a
+line — which is how this arrangement came to be.
 
 If you have edited anything on a **replaced** line, that edit is the thing that will hurt. Move
 it into the extension layer (`CUSTOMIZING.md`) before updating, not after. §2 stops and tells
@@ -57,9 +67,14 @@ date with the files it is copying. It copies; it never merges. What it adds over
 
 - **It prints the log** since your last update, and says which commits let you *delete* code
   from the fork. An update that only adds is an update half-taken.
-- **It refuses to overwrite a file you edited** — comparing against the version you last took,
-  not against upstream's HEAD, so an upstream change never looks like your edit. This is the
-  signal `git merge` gave you as a conflict, without the merge.
+- **It skips a file you edited, and takes everything else** — comparing against the version
+  you last took, not against upstream's HEAD, so an upstream change never looks like your edit.
+  This is the signal `git merge` gave you as a conflict, without the merge. Skipped files are
+  named at the end with where the edit belongs instead, and the exit code is 1. One local
+  patch no longer freezes the whole fork; `--force` overwrites it if you meant to drop it.
+- **`--check` reports drift and nothing else** — exit 1 if any upstream-owned file is edited.
+  Cheap enough for a pre-commit hook or a fork's `CLAUDE.md`: drift found the day it happens is
+  a five-minute move, drift found at update time is an archaeology session.
 - **It refuses to copy from a dirty upstream.** There is no commit to record, so the *next*
   update would have nothing to diff against. (`--allow-dirty` if you must; the stamp then says
   so.)
@@ -83,6 +98,12 @@ repo changes nothing until you rebuild and re-install:
 ```bash
 ./build.sh && rm -rf ~/.claude/skills/slaydy && cp -R dist/slaydy ~/.claude/skills/slaydy
 ```
+
+A fork builds under its own name — `./build.sh` reads it from `SKILL.fork.md`, so `dist/<name>/`
+and `dist/<name>-skill.zip` come out branded with no arguments. Pass a name to build under a
+different one (`./build.sh acme-decks-beta` for a trial install beside the real one); the
+folder, the zip and the `name:` frontmatter always agree. Never install the repo folder itself
+as the skill: its `SKILL.md` is upstream's generic one, and it registers as "slaydy".
 
 > **Coming from a pre-rename install:** the skill used to be called `slidecraft`. Copying in
 > `slaydy/` leaves the old folder in place, and two skills with near-identical descriptions

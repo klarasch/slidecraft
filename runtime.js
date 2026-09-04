@@ -2,6 +2,13 @@
    slaydy — runtime.js
    Fixed asset. Ships with the skill. Never regenerated per-deck.
 
+   UPSTREAM-OWNED. Every update replaces this file whole, and an edit here
+   is skipped by take-update.sh from then on (UPDATING.md §1). Your change
+   almost certainly belongs elsewhere: a theme or custom.css for style,
+   custom.js with the slaydy:* events and window.slaydy for behaviour,
+   options.declare() for a data-* attribute, themes/<brand>.md for what the
+   model does. If none of those can express it, report the gap upstream.
+
    Responsibilities:
      · fit a fixed 1280×720 canvas to any viewport
      · keyboard / click navigation + hash routing

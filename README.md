@@ -127,20 +127,35 @@ themes/*.md        that brand's writing voice
 themes/default     one line: which theme to use without asking
 images/            deck assets
 standalone.py      builds the single shareable file (named from <title>); --explode reverses it
-build.sh           assembles the installable skill into dist/ (repo = dev source)
+build.sh           assembles the installable skill into dist/<name>/ (repo = dev source)
+SKILL.fork.md      a fork's own name, description and standing orders (absent upstream)
+skeleton.html      a fork's own deck.html shell — links, fonts, body attributes (absent upstream)
 ```
 
 This repo is the dev source. `./build.sh` produces `dist/slaydy/` — the actual skill to
 drop into `.claude/skills/` or install in Cowork — plus `dist/slaydy-skill.zip` to share.
-Demo deck, README, and HANDOFF stay out of the shipped skill.
+The skill is the repo minus the dev files (demo deck, README, HANDOFF, scripts, dot-files,
+and anything in `.skillignore`); `./build.sh <name>` builds the same thing under another name.
 
-## Running your own copy
+## Running your own copy — slaydy as the engine under your brand's skill
 
-Fork it, put your brand in `themes/<you>.css`, and keep taking updates: everything slaydy ships
-is replaceable, everything yours lives in files a release never touches. `CUSTOMIZING.md` draws
-that line; **`UPDATING.md` is the procedure** — syncing a fork, re-installing the skill, and
-refreshing the runtime inside decks that already exist (each deck folder carries its own copy).
-Changing the runtime rather than consuming it: `HANDOFF.md` §7.
+Slaydy is the engine. A brand is a fork of it, and the fork's build is a skill of its own:
+
+1. Fork, or copy the folder. Keep an upstream checkout beside it.
+2. Put the brand in `themes/<brand>.css` (+ `fonts/`, `images/`), and its rules in
+   `themes/<brand>.md`. Anything bigger goes in `custom/` — `CUSTOMIZING.md`.
+3. Write `SKILL.fork.md`: `name:`, a `description:` that says the brand, and a few lines of
+   standing orders (what never to ask). Ship `skeleton.html`, the deck shell with your links
+   and fonts in it, so the wiring is copied, never re-derived.
+4. `./build.sh` → `dist/<name>/`. Install that, not the repo folder.
+5. To update: `~/Code/slaydy/take-update.sh` from the fork. Everything slaydy ships is
+   replaced; everything yours is untouched and still ships.
+
+`./build.sh` composes the shipped `SKILL.md` from your head and upstream's body, so the
+instructions update and the identity stays yours. `CUSTOMIZING.md` draws the line between the
+two; **`UPDATING.md` is the procedure** — syncing a fork, re-installing the skill, and
+refreshing the runtime inside decks that already exist (each deck folder carries its own
+copy). Changing the runtime rather than consuming it: `HANDOFF.md` §7.
 
 ## Known gaps (deliberate, v1)
 

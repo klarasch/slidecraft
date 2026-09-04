@@ -55,9 +55,14 @@ stylesheets. Transitions move slide content, never the slide box (translucent-sl
 leaving slide fades — on top of the already-opaque entering one, so identical backgrounds
 stay pixel-steady instead of dipping mid-cross-fade;
 fit() snaps the deck to whole pixels, `--deck-pad` controls the windowed inset.
-Repo vs skill: this repo is the dev source; `./build.sh` assembles the installable skill into
-`dist/slaydy/` (+ zip) — SKILL/LAYOUTS/BRANDING/CUSTOMIZING, runtime, themes, standalone.py;
-demo deck and repo docs excluded.
+Repo vs skill: this repo is the dev source; `./build.sh [name]` assembles the installable skill
+into `dist/<name>/` (+ zip) — SKILL/LAYOUTS/BRANDING/CUSTOMIZING/UPDATING, runtime, themes,
+icons, standalone.py, and everything else in the folder that isn't a dev file (top-level
+.html/.sh, non-contract .md, dot-files, dist/, `.skillignore` patterns) — so a fork's brand
+layer ships whatever it is called. The shipped SKILL.md is composed: a fork's `SKILL.fork.md` (frontmatter + standing
+orders) over upstream's generic body, so SKILL.md and build.sh are both upstream-owned and a
+fork edits neither (2026-09-04; before that the S1 fork regex-patched the frontmatter from its
+own build.sh and kept shipping as "slaydy" when upstream reworded a line).
 First real skill-install test (2026-08-24, `~/Code/slidecraft-testbed`) caught a contract hole:
 with the demo deck excluded from the build, nothing documented the deck.html shell, and the
 generating model omitted `.stage > .deck` (fatal black screen), put the theme link before

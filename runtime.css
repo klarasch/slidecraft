@@ -1,6 +1,13 @@
 /* =========================================================================
    slaydy — runtime.css
    Fixed asset. Never regenerated per-deck. Themes override tokens only.
+
+   UPSTREAM-OWNED. Every update replaces this file whole, and an edit here
+   is skipped by take-update.sh from then on (UPDATING.md §1). Restyle from
+   your theme or custom.css instead — they load after this file and win at
+   equal specificity — and prefer the tokens (--slide-bg, --section-fg,
+   --wash-base, --deck-pad, --sep, --marker-*, --code-*) to selector
+   overrides. A rule you cannot reach that way is a gap to report upstream.
    ========================================================================= */
 
 /* ---------- defaults (themes override) ---------- */
